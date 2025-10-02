@@ -3,10 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 public class TouchscreenInput : MonoBehaviour
 {
+    [Header("Settings")] 
+    [Tooltip("Move joystick magnitude is in [-1;1] range, this multiply it before sending it to move event")]
+    public float MoveMagnitudeMultiplier = 1.0f;
+    [Tooltip("Look joystick magnitude is in [-1;1] range, this multiply it before sending it to move event")]
+    public float LookMagnitudeMultiplier = 1.0f;
+    public bool InvertLookY;
+    
+    [Header("Events")]
     public UnityEvent<Vector2> MoveEvent;
     public UnityEvent<Vector2> LookEvent;
     public UnityEvent<bool> JumpEvent;
@@ -20,6 +29,16 @@ public class TouchscreenInput : MonoBehaviour
     private void Awake()
     {
         m_Document = GetComponent<UIDocument>();
+
+        var safeArea = Screen.safeArea;
+
+        var root = m_Document.rootVisualElement;
+
+        root.style.position = Position.Absolute;
+        root.style.left = safeArea.xMin;
+        root.style.right = Screen.width - safeArea.xMax;
+        root.style.top = Screen.height - safeArea.yMax;
+        root.style.bottom = safeArea.yMin;
     }
 
     private void Start()
@@ -30,22 +49,25 @@ public class TouchscreenInput : MonoBehaviour
         m_MoveJoystick = new VirtualJoystick(joystickMove);
         m_MoveJoystick.JoystickEvent.AddListener(mov =>
         {
-            MoveEvent.Invoke(mov);
+            MoveEvent.Invoke(mov * MoveMagnitudeMultiplier);
         });;
         
         m_LookJoystick = new VirtualJoystick(joystickLook);
         m_LookJoystick.JoystickEvent.AddListener(mov =>
         {
-            LookEvent.Invoke(mov);
+            if (InvertLookY)
+                mov.y *= -1;
+
+            LookEvent.Invoke(mov * LookMagnitudeMultiplier);
         });
 
         var jumpButton = m_Document.rootVisualElement.Q<VisualElement>("ButtonJump");
-        jumpButton.RegisterCallback<PointerDownEvent>(evt => { JumpEvent.Invoke(true); });
-        jumpButton.RegisterCallback<PointerUpEvent>(evt => { JumpEvent.Invoke(false); });
+        jumpButton.RegisterCallback<PointerEnterEvent>(evt => { JumpEvent.Invoke(true); });
+        jumpButton.RegisterCallback<PointerLeaveEvent>(evt => { JumpEvent.Invoke(false); });
         
         var sprintButton = m_Document.rootVisualElement.Q<VisualElement>("ButtonSprint");
-        sprintButton.RegisterCallback<PointerDownEvent>(evt => { SprintEvent.Invoke(true); });
-        sprintButton.RegisterCallback<PointerUpEvent>(evt => { SprintEvent.Invoke(false); });
+        sprintButton.RegisterCallback<PointerEnterEvent>(evt => { SprintEvent.Invoke(true); });
+        sprintButton.RegisterCallback<PointerLeaveEvent>(evt => { SprintEvent.Invoke(false); });
     }
 }
 public class VirtualJoystick
@@ -101,7 +123,7 @@ public class VirtualJoystick
         centerToPosition /= (width / 2);
         //we invert y as the y of UI goes down, but pushing the joystick up is expected to give a positive y value
         centerToPosition.y *= -1;
-        
+
         JoystickEvent.Invoke(centerToPosition);
     }
 }

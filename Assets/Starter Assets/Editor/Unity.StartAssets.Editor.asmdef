@@ -3,7 +3,7 @@
     "rootNamespace": "",
     "references": [
         "Unity.StarterAssets",
-        "Cinemachine"
+        "Unity.Cinemachine"
     ],
     "includePlatforms": [
         "Editor"

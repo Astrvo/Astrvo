@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
-using Cinemachine;
+using Unity.Cinemachine;
 
 namespace StarterAssets
 {
@@ -34,7 +34,7 @@ namespace StarterAssets
 
             if (!vcam)
             {
-                if (TryLocatePrefab(CinemachineVirtualCameraName, new string[]{prefabFolder}, new[] { typeof(CinemachineVirtualCamera) }, out GameObject vcamPrefab, out string _))
+                if (TryLocatePrefab(CinemachineVirtualCameraName, new string[]{prefabFolder}, new[] { typeof(CinemachineCamera) }, out GameObject vcamPrefab, out string _))
                 {
                     HandleInstantiatingPrefab(vcamPrefab, out vcam);
                     _cinemachineVirtualCamera = vcam;
@@ -91,7 +91,7 @@ namespace StarterAssets
             GameObject cinemachineVirtualCamera)
         {
             var serializedObject =
-                new SerializedObject(cinemachineVirtualCamera.GetComponent<CinemachineVirtualCamera>());
+                new SerializedObject(cinemachineVirtualCamera.GetComponent<CinemachineCamera>());
             var serializedProperty = serializedObject.FindProperty("m_Follow");
             serializedProperty.objectReferenceValue = target.transform;
             serializedObject.ApplyModifiedProperties();

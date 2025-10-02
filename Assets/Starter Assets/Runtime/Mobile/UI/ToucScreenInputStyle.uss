@@ -11,8 +11,8 @@
     width: 330px;
     height: 330px;
     
-    left: 55px;
-    bottom: 55px;
+    left: 25px;
+    bottom: 15px;
 }
 
 #JoystickLook {
