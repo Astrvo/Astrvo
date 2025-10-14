@@ -15,7 +15,7 @@ namespace Astrvo.Space
         [SerializeField][Tooltip("Animator to use on loaded avatar")] 
         private RuntimeAnimatorController animatorController;
         [SerializeField][Tooltip("If true it will try to load avatar from avatarUrl on start")] 
-        private bool loadOnStart = true;
+        private bool loadOnStart = false;
         [SerializeField][Tooltip("Preview avatar to display until avatar loads. Will be destroyed after new avatar is loaded")]
         private GameObject previewAvatar;
 

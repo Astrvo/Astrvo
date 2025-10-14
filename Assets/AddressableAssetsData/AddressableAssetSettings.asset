@@ -17,18 +17,18 @@ MonoBehaviour:
     serializedVersion: 2
     Hash: 00000000000000000000000000000000
   m_OptimizeCatalogSize: 0
-  m_BuildRemoteCatalog: 0
+  m_BuildRemoteCatalog: 1
   m_CatalogRequestsTimeout: 0
   m_DisableCatalogUpdateOnStart: 0
   m_InternalIdNamingMode: 0
   m_InternalBundleIdMode: 1
   m_AssetLoadMode: 0
   m_BundledAssetProviderType:
-    m_AssemblyName: 
-    m_ClassName: 
+    m_AssemblyName: Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    m_ClassName: UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider
   m_AssetBundleProviderType:
-    m_AssemblyName: 
-    m_ClassName: 
+    m_AssemblyName: Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    m_ClassName: UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider
   m_IgnoreUnsupportedFilesInBuild: 0
   m_UniqueBundleIds: 0
   m_EnableJsonCatalog: 0
@@ -73,7 +73,7 @@ MonoBehaviour:
       - m_Id: 39ea27434bb38b5498cd0c9de21498dd
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
       - m_Id: 4409cd90c482ee74f8eacbfc50f4ad8f
-        m_Value: <undefined>
+        m_Value: 'https://2b66146e195f68f74ebd77fc74d89422.r2.cloudflarestorage.com/astrvo/[BuildTarget]'
       - m_Id: 49854f3bdc3fc664aa6799a49c92b3b3
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: e7e2db019262b5948b3b69f88d3822bc
@@ -87,7 +87,7 @@ MonoBehaviour:
       - m_Id: 39ea27434bb38b5498cd0c9de21498dd
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
       - m_Id: 4409cd90c482ee74f8eacbfc50f4ad8f
-        m_Value: 'http://127.0.0.1:1780/[BuildTarget]'
+        m_Value: 'https://2b66146e195f68f74ebd77fc74d89422.r2.cloudflarestorage.com/astrvo/[BuildTarget]'
       - m_Id: 49854f3bdc3fc664aa6799a49c92b3b3
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: e7e2db019262b5948b3b69f88d3822bc

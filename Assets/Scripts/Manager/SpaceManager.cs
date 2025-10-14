@@ -1,0 +1,228 @@
+using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using System.Collections;
+using System.Collections.Generic;
+using System;
+
+public class SpaceManager : MonoBehaviour
+{
+    [Header("Addressable配置")]
+    [SerializeField] private string remoteCatalogUrl = "https://pub-271d299f66224f5d937c1c6dde2d403a.r2.dev/WebGL/catalog_0.1.0.bin";
+    [SerializeField] private string addressKeyPrefix = "space_";
+    [SerializeField] private Transform spaceRoot;
+    [SerializeField] private bool clearPreviousOnReload = true;
+    
+    [Header("调试设置")]
+    [SerializeField] private string overrideSpaceId = "";
+    [SerializeField] private string defaultLocalSpaceId = "snekspace";
+    [SerializeField] private bool logVerbose = true;
+    
+    private Dictionary<string, GameObject> loadedSpaces = new Dictionary<string, GameObject>();
+    private bool isInitialized = false;
+    
+    // 事件
+    public event Action OnSpaceLoadComplete;
+    public event Action<string> OnSpaceLoadFailed;
+    
+    void Start()
+    {
+        InitializeSpaceManager();
+    }
+    
+    private void InitializeSpaceManager()
+    {
+        if (isInitialized) return;
+        
+        StartCoroutine(InitializeSpaceManagerCoroutine());
+    }
+    
+    private IEnumerator InitializeSpaceManagerCoroutine()
+    {
+        // 设置远程catalog URL
+        if (!string.IsNullOrEmpty(remoteCatalogUrl))
+        {
+            LogVerbose($"正在加载远程catalog: {remoteCatalogUrl}");
+            var catalogHandle = Addressables.LoadContentCatalogAsync(remoteCatalogUrl);
+            yield return catalogHandle;
+            
+            if (catalogHandle.Status == AsyncOperationStatus.Succeeded)
+            {
+                LogVerbose("远程catalog加载完成");
+            }
+            else
+            {
+                Debug.LogError($"远程catalog加载失败: {catalogHandle.OperationException?.Message}");
+                yield break;
+            }
+        }
+        
+        // 如果没有指定spaceRoot，尝试在场景中查找Space GameObject
+        if (spaceRoot == null)
+        {
+            GameObject spaceObject = GameObject.Find("Space");
+            if (spaceObject != null)
+            {
+                spaceRoot = spaceObject.transform;
+                LogVerbose("找到场景中的Space GameObject");
+            }
+            else
+            {
+                Debug.LogError("SpaceManager: 未找到Space GameObject，请确保场景中存在名为'Space'的GameObject");
+                yield break;
+            }
+        }
+        
+        isInitialized = true;
+        LogVerbose("SpaceManager初始化完成");
+        
+        // 加载默认space
+        if (!string.IsNullOrEmpty(defaultLocalSpaceId))
+        {
+            yield return StartCoroutine(LoadSpaceCoroutine(defaultLocalSpaceId));
+        }
+    }
+    
+    /// <summary>
+    /// 根据spaceId加载对应的space
+    /// </summary>
+    /// <param name="spaceId">Space的ID</param>
+    public void LoadSpace(string spaceId)
+    {
+        if (!isInitialized)
+        {
+            Debug.LogWarning("SpaceManager尚未初始化，请稍后再试");
+            return;
+        }
+        
+        StartCoroutine(LoadSpaceCoroutine(spaceId));
+    }
+    
+    /// <summary>
+    /// 加载Space的协程
+    /// </summary>
+    /// <param name="spaceId">Space的ID</param>
+    private IEnumerator LoadSpaceCoroutine(string spaceId)
+    {
+        if (string.IsNullOrEmpty(spaceId))
+        {
+            Debug.LogError("SpaceManager: spaceId不能为空");
+            yield break;
+        }
+        
+        // 使用overrideSpaceId如果设置了
+        string actualSpaceId = !string.IsNullOrEmpty(overrideSpaceId) ? overrideSpaceId : spaceId;
+        string addressKey = addressKeyPrefix + actualSpaceId;
+        
+        LogVerbose($"开始加载Space: {actualSpaceId}, Address Key: {addressKey}");
+        
+        // 如果设置了清除之前的space，先清除
+        if (clearPreviousOnReload)
+        {
+            ClearAllLoadedSpaces();
+        }
+        
+        // 检查是否已经加载过
+        if (loadedSpaces.ContainsKey(actualSpaceId))
+        {
+            LogVerbose($"Space {actualSpaceId} 已经加载过了");
+            yield break;
+        }
+        
+        // 加载Addressable资源
+        var handle = Addressables.LoadAssetAsync<GameObject>(addressKey);
+        yield return handle;
+        
+        if (handle.Status == AsyncOperationStatus.Succeeded && handle.Result != null)
+        {
+            GameObject spacePrefab = handle.Result;
+            
+            // 实例化space
+            GameObject spaceInstance = Instantiate(spacePrefab, spaceRoot);
+            spaceInstance.name = actualSpaceId;
+            
+            // 记录已加载的space
+            loadedSpaces[actualSpaceId] = spaceInstance;
+            
+            LogVerbose($"Space {actualSpaceId} 加载成功并挂载到Space GameObject下");
+            OnSpaceLoadComplete?.Invoke();
+        }
+        else
+        {
+            string errorMsg = $"SpaceManager: 无法加载Space {actualSpaceId}，请检查Address Key: {addressKey}。错误: {handle.OperationException?.Message}";
+            Debug.LogError(errorMsg);
+            OnSpaceLoadFailed?.Invoke(errorMsg);
+        }
+    }
+    
+    /// <summary>
+    /// 卸载指定的space
+    /// </summary>
+    /// <param name="spaceId">要卸载的Space ID</param>
+    public void UnloadSpace(string spaceId)
+    {
+        if (loadedSpaces.ContainsKey(spaceId))
+        {
+            GameObject spaceInstance = loadedSpaces[spaceId];
+            if (spaceInstance != null)
+            {
+                Destroy(spaceInstance);
+            }
+            loadedSpaces.Remove(spaceId);
+            LogVerbose($"Space {spaceId} 已卸载");
+        }
+        else
+        {
+            Debug.LogWarning($"SpaceManager: 未找到要卸载的Space {spaceId}");
+        }
+    }
+    
+    /// <summary>
+    /// 清除所有已加载的space
+    /// </summary>
+    public void ClearAllLoadedSpaces()
+    {
+        foreach (var kvp in loadedSpaces)
+        {
+            if (kvp.Value != null)
+            {
+                Destroy(kvp.Value);
+            }
+        }
+        loadedSpaces.Clear();
+        LogVerbose("所有已加载的Space已清除");
+    }
+    
+    /// <summary>
+    /// 获取已加载的space列表
+    /// </summary>
+    /// <returns>已加载的space ID列表</returns>
+    public List<string> GetLoadedSpaceIds()
+    {
+        return new List<string>(loadedSpaces.Keys);
+    }
+    
+    /// <summary>
+    /// 检查指定space是否已加载
+    /// </summary>
+    /// <param name="spaceId">Space ID</param>
+    /// <returns>是否已加载</returns>
+    public bool IsSpaceLoaded(string spaceId)
+    {
+        return loadedSpaces.ContainsKey(spaceId);
+    }
+    
+    private void LogVerbose(string message)
+    {
+        if (logVerbose)
+        {
+            Debug.Log($"[SpaceManager] {message}");
+        }
+    }
+    
+    void OnDestroy()
+    {
+        // 清理资源
+        ClearAllLoadedSpaces();
+    }
+}
