@@ -111,7 +111,7 @@ public class LoadingManager : MonoBehaviour
     private void OnSpaceLoadFailed(string error)
     {
         Debug.LogError($"Space Load Failed: {error}");
-        UpdateLoadingUI("Load Space Failed", 0f);
+        UpdateLoadingUI("空间加载失败，请检查网络连接", 0f);
         isLoadingComplete = true;
     }
     

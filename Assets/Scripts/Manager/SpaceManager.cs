@@ -8,6 +8,7 @@ using System;
 public class SpaceManager : MonoBehaviour
 {
     [Header("Addressable配置")]
+    [SerializeField] private bool useRemoteCatalog = false;
     [SerializeField] private string remoteCatalogUrl = "https://pub-271d299f66224f5d937c1c6dde2d403a.r2.dev/WebGL/catalog_0.1.0.bin";
     [SerializeField] private string addressKeyPrefix = "space_";
     [SerializeField] private Transform spaceRoot;
@@ -40,7 +41,7 @@ public class SpaceManager : MonoBehaviour
     private IEnumerator InitializeSpaceManagerCoroutine()
     {
         // 设置远程catalog URL
-        if (!string.IsNullOrEmpty(remoteCatalogUrl))
+        if (useRemoteCatalog && !string.IsNullOrEmpty(remoteCatalogUrl))
         {
             LogVerbose($"正在加载远程catalog: {remoteCatalogUrl}");
             var catalogHandle = Addressables.LoadContentCatalogAsync(remoteCatalogUrl);
@@ -53,8 +54,12 @@ public class SpaceManager : MonoBehaviour
             else
             {
                 Debug.LogError($"远程catalog加载失败: {catalogHandle.OperationException?.Message}");
-                yield break;
+                LogVerbose("将使用默认Addressable设置...");
             }
+        }
+        else
+        {
+            LogVerbose("使用默认Addressable设置，跳过远程catalog加载");
         }
         
         // 如果没有指定spaceRoot，尝试在场景中查找Space GameObject

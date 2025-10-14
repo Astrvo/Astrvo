@@ -477,11 +477,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55e903c91fc172045bed21fcb24472ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceManager
+  useRemoteCatalog: 1
   remoteCatalogUrl: https://pub-271d299f66224f5d937c1c6dde2d403a.r2.dev/WebGL/catalog_0.1.0.bin
   addressKeyPrefix: space_
   spaceRoot: {fileID: 1956113268}
   clearPreviousOnReload: 1
-  overrideSpaceId: 
+  overrideSpaceId: snekspace
   defaultLocalSpaceId: snekspace
   logVerbose: 1
 --- !u!114 &237507841
