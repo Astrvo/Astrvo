@@ -8,7 +8,7 @@ using System;
 public class SpaceManager : MonoBehaviour
 {
     [Header("Addressable配置")]
-    [SerializeField] private bool useRemoteCatalog = false;
+    [SerializeField] private bool useRemoteCatalog = true;
     [SerializeField] private string remoteCatalogUrl = "https://pub-271d299f66224f5d937c1c6dde2d403a.r2.dev/WebGL/catalog_0.1.0.bin";
     [SerializeField] private string addressKeyPrefix = "space_";
     [SerializeField] private Transform spaceRoot;
@@ -40,6 +40,12 @@ public class SpaceManager : MonoBehaviour
     
     private IEnumerator InitializeSpaceManagerCoroutine()
     {
+        // WebGL特殊处理：等待Addressables系统完全初始化
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        LogVerbose("WebGL平台检测到，等待Addressables系统初始化...");
+        yield return new WaitForSeconds(1f); // 给WebGL更多时间初始化
+        #endif
+        
         // 设置远程catalog URL
         if (useRemoteCatalog && !string.IsNullOrEmpty(remoteCatalogUrl))
         {
@@ -53,13 +59,29 @@ public class SpaceManager : MonoBehaviour
             }
             else
             {
-                Debug.LogError($"远程catalog加载失败: {catalogHandle.OperationException?.Message}");
+                string errorDetails = catalogHandle.OperationException?.Message ?? "未知错误";
+                Debug.LogError($"远程catalog加载失败: {errorDetails}");
+                Debug.LogError($"Catalog URL: {remoteCatalogUrl}");
+                Debug.LogError($"Status: {catalogHandle.Status}");
                 LogVerbose("将使用默认Addressable设置...");
             }
         }
         else
         {
             LogVerbose("使用默认Addressable设置，跳过远程catalog加载");
+        }
+        
+        // 确保Addressables系统已初始化
+        var initHandle = Addressables.InitializeAsync();
+        yield return initHandle;
+        
+        if (initHandle.Status == AsyncOperationStatus.Succeeded)
+        {
+            LogVerbose("Addressables系统初始化成功");
+        }
+        else
+        {
+            Debug.LogError($"Addressables系统初始化失败: {initHandle.OperationException?.Message}");
         }
         
         // 如果没有指定spaceRoot，尝试在场景中查找Space GameObject
@@ -135,6 +157,7 @@ public class SpaceManager : MonoBehaviour
         }
         
         // 加载Addressable资源
+        LogVerbose($"开始加载Addressable资源: {addressKey}");
         var handle = Addressables.LoadAssetAsync<GameObject>(addressKey);
         yield return handle;
         
@@ -154,8 +177,12 @@ public class SpaceManager : MonoBehaviour
         }
         else
         {
-            string errorMsg = $"SpaceManager: 无法加载Space {actualSpaceId}，请检查Address Key: {addressKey}。错误: {handle.OperationException?.Message}";
+            string errorDetails = handle.OperationException?.Message ?? "未知错误";
+            string errorMsg = $"SpaceManager: 无法加载Space {actualSpaceId}，请检查Address Key: {addressKey}。错误: {errorDetails}，状态: {handle.Status}";
             Debug.LogError(errorMsg);
+            Debug.LogError($"尝试的Address Key: {addressKey}");
+            Debug.LogError($"Handle Status: {handle.Status}");
+            Debug.LogError($"Handle Result: {handle.Result}");
             OnSpaceLoadFailed?.Invoke(errorMsg);
         }
     }
