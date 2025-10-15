@@ -60,7 +60,7 @@ public class LoadingManager : MonoBehaviour
     private IEnumerator LoadingSequence()
     {
         // 步骤1: 加载Space
-        UpdateLoadingUI("Loading Space...", 0.1f);
+        UpdateLoadingUI("Loading Space", 0.1f);
         yield return new WaitForSeconds(0.5f);
         
         if (spaceManager != null)
@@ -80,7 +80,7 @@ public class LoadingManager : MonoBehaviour
         }
         
         // 步骤2: 加载Avatar
-        UpdateLoadingUI("Loading Avatar...", 0.5f);
+        UpdateLoadingUI("Loading Avatar", 0.5f);
         yield return new WaitForSeconds(0.5f);
         
         if (thirdPersonLoader != null && !string.IsNullOrEmpty(defaultAvatarUrl))
@@ -95,7 +95,7 @@ public class LoadingManager : MonoBehaviour
         }
         
         // 步骤3: 完成加载
-        UpdateLoadingUI("Load Finished!", 1.0f);
+        UpdateLoadingUI("Load Finished", 1.0f);
         yield return new WaitForSeconds(loadingDelay);
         
         // 隐藏加载界面，启用玩家控制

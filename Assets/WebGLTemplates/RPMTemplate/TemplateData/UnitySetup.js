@@ -56,7 +56,10 @@ if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
     // Avoid draining fillrate performance on mobile devices,
     // and default/override low DPI mode on mobile browsers.
     config.devicePixelRatio = 1;
-    unityShowBanner('WebGL builds are not supported on mobile devices.');
+    // 移除移动端不支持提示，允许在移动设备上运行
+    // unityShowBanner('WebGL builds are not supported on mobile devices.');
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
 } else {
     canvas.style.width = "{{{ WIDTH }}}px";
     canvas.style.height = "{{{ HEIGHT }}}px";
