@@ -22,11 +22,15 @@ public class LoadingManager : MonoBehaviour
     [Header("配置")]
     [SerializeField] private string defaultAvatarUrl = "https://models.readyplayer.me/64a1a5a0b0b8b8b8b8b8b8b8.glb";
     [SerializeField] private float loadingDelay = 0.5f; // 延迟显示加载完成，让用户看到100%
+    [SerializeField] private float progressAnimationSpeed = 2f; // 进度条动画速度
+    [SerializeField] private float progressAnimationDelay = 0.1f; // 进度条动画延迟
     
     private bool spaceLoaded = false;
     private bool avatarLoaded = false;
     private float currentProgress = 0f;
+    private float targetProgress = 0f;
     private bool isLoadingComplete = false;
+    private Coroutine progressAnimationCoroutine;
     
     void Start()
     {
@@ -128,9 +132,61 @@ public class LoadingManager : MonoBehaviour
             loadingText.text = text;
         }
         
+        // 设置目标进度并开始平滑动画
+        targetProgress = progress;
+        StartSmoothProgressAnimation();
+    }
+    
+    private void StartSmoothProgressAnimation()
+    {
+        // 停止之前的动画
+        if (progressAnimationCoroutine != null)
+        {
+            StopCoroutine(progressAnimationCoroutine);
+        }
+        
+        // 开始新的动画
+        progressAnimationCoroutine = StartCoroutine(SmoothProgressAnimation());
+    }
+    
+    private IEnumerator SmoothProgressAnimation()
+    {
+        float startProgress = currentProgress;
+        float progressDifference = targetProgress - startProgress;
+        
+        // 如果进度差异很小，直接设置
+        if (Mathf.Abs(progressDifference) < 0.01f)
+        {
+            currentProgress = targetProgress;
+            UpdateProgressBar();
+            yield break;
+        }
+        
+        float animationTime = Mathf.Abs(progressDifference) / progressAnimationSpeed;
+        float elapsedTime = 0f;
+        
+        while (elapsedTime < animationTime)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / animationTime;
+            
+            // 使用平滑的插值曲线
+            t = Mathf.SmoothStep(0f, 1f, t);
+            currentProgress = Mathf.Lerp(startProgress, targetProgress, t);
+            
+            UpdateProgressBar();
+            yield return null;
+        }
+        
+        // 确保最终值准确
+        currentProgress = targetProgress;
+        UpdateProgressBar();
+    }
+    
+    private void UpdateProgressBar()
+    {
         if (progressBar != null)
         {
-            currentProgress = progress;
             progressBar.value = currentProgress;
         }
         
@@ -147,7 +203,21 @@ public class LoadingManager : MonoBehaviour
             loadingPanel.SetActive(true);
         }
         
-        UpdateLoadingUI("Initializing...", 0f);
+        // 初始化进度条
+        currentProgress = 0f;
+        targetProgress = 0f;
+        if (progressBar != null)
+        {
+            progressBar.value = 0f;
+        }
+        if (progressText != null)
+        {
+            progressText.text = "0%";
+        }
+        if (loadingText != null)
+        {
+            loadingText.text = "Initializing...";
+        }
     }
     
     private void CompleteLoading()
@@ -179,6 +249,12 @@ public class LoadingManager : MonoBehaviour
     
     void OnDestroy()
     {
+        // 停止所有协程
+        if (progressAnimationCoroutine != null)
+        {
+            StopCoroutine(progressAnimationCoroutine);
+        }
+        
         // 取消订阅事件
         if (spaceManager != null)
         {
