@@ -1,0 +1,102 @@
+/* Astrvo 极简WebGL模板样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#unity-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#unity-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    background: #000000;
+    border: none;
+    outline: none;
+}
+
+/* 加载界面样式 */
+#unity-loading-bar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1000;
+}
+
+#unity-logo {
+    width: 80px;
+    height: 80px;
+    background: url('logo.png') no-repeat center;
+    background-size: contain;
+    margin-bottom: 20px;
+}
+
+#unity-progress-bar-empty {
+    width: 200px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+#unity-progress-bar-full {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #00d4ff, #0099cc);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* 警告信息样式 */
+#unity-warning {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 14px;
+    display: none;
+    z-index: 1001;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    #unity-logo {
+        width: 60px;
+        height: 60px;
+    }
+    
+    #unity-progress-bar-empty {
+        width: 150px;
+    }
+}
+
+/* 隐藏加载界面 */
+.loaded #unity-loading-bar {
+    display: none;
+}
