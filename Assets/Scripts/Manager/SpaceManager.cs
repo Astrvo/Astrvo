@@ -195,6 +195,12 @@ public class SpaceManager : MonoBehaviour
                 // 实例化space
                 GameObject spaceInstance = Instantiate(spacePrefab, spaceRoot);
                 spaceInstance.name = actualSpaceId;
+
+                #if UNITY_WEBGL && !UNITY_EDITOR
+                // WebGL特殊处理：等待物理系统稳定
+                yield return new WaitForFixedUpdate();
+                yield return new WaitForFixedUpdate();
+                #endif
                 
                 // 记录已加载的space
                 loadedSpaces[actualSpaceId] = spaceInstance;

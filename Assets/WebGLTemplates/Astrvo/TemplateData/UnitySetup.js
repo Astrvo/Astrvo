@@ -48,6 +48,22 @@ var canvas = document.querySelector("#unity-canvas");
 var loadingBar = document.querySelector("#unity-loading-bar");
 var progressBarFull = document.querySelector("#unity-progress-bar-full");
 var warningBanner = document.querySelector("#unity-warning");
+var logoElement = document.querySelector("#unity-logo");
+
+// 强制logo居中的函数
+function forceLogoCenter() {
+    if (logoElement) {
+        logoElement.style.display = "flex";
+        logoElement.style.alignItems = "center";
+        logoElement.style.justifyContent = "center";
+        logoElement.style.marginLeft = "auto";
+        logoElement.style.marginRight = "auto";
+        logoElement.style.textAlign = "center";
+        logoElement.style.backgroundPosition = "center center";
+        logoElement.style.backgroundRepeat = "no-repeat";
+        logoElement.style.backgroundSize = "contain";
+    }
+}
 
 // 移动设备检测和配置
 if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
@@ -69,6 +85,17 @@ canvas.style.background = "url('" + buildUrl + "/{{{ BACKGROUND_FILENAME.replace
 
 // 显示加载界面
 loadingBar.style.display = "block";
+// 立即强制logo居中
+forceLogoCenter();
+
+// 设置定时器，定期检查并修复logo居中状态
+var logoCenterInterval = setInterval(function() {
+    if (loadingBar.style.display !== "none") {
+        forceLogoCenter();
+    } else {
+        clearInterval(logoCenterInterval);
+    }
+}, 100); // 每100ms检查一次
 
 // 创建Unity实例
 var script = document.createElement("script");
@@ -76,9 +103,13 @@ script.src = loaderUrl;
 script.onload = () => {
     createUnityInstance(canvas, config, (progress) => {
         progressBarFull.style.width = 100 * progress + "%";
+        // 在每次进度更新时也强制logo居中
+        forceLogoCenter();
     })
     .then((unityInstance) => {
         unityGame = unityInstance;
+        // 清理定时器
+        clearInterval(logoCenterInterval);
         // 加载完成后隐藏加载界面
         loadingBar.style.display = "none";
         container.classList.add("loaded");
