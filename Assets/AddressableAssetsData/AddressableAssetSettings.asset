@@ -73,7 +73,7 @@ MonoBehaviour:
       - m_Id: 39ea27434bb38b5498cd0c9de21498dd
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
       - m_Id: 4409cd90c482ee74f8eacbfc50f4ad8f
-        m_Value: 'https://2b66146e195f68f74ebd77fc74d89422.r2.cloudflarestorage.com/astrvo/[BuildTarget]'
+        m_Value: 'https://pub-271d299f66224f5d937c1c6dde2d403a.r2.dev/[BuildTarget]'
       - m_Id: 49854f3bdc3fc664aa6799a49c92b3b3
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: e7e2db019262b5948b3b69f88d3822bc
@@ -87,7 +87,7 @@ MonoBehaviour:
       - m_Id: 39ea27434bb38b5498cd0c9de21498dd
         m_Value: '{UnityEngine.AddressableAssets.Addressables.RuntimePath}/[BuildTarget]'
       - m_Id: 4409cd90c482ee74f8eacbfc50f4ad8f
-        m_Value: 'https://2b66146e195f68f74ebd77fc74d89422.r2.cloudflarestorage.com/astrvo/[BuildTarget]'
+        m_Value: 'https://pub-271d299f66224f5d937c1c6dde2d403a.r2.dev/[BuildTarget]'
       - m_Id: 49854f3bdc3fc664aa6799a49c92b3b3
         m_Value: '[UnityEditor.EditorUserBuildSettings.activeBuildTarget]'
       - m_Id: e7e2db019262b5948b3b69f88d3822bc

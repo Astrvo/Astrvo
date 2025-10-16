@@ -63,13 +63,37 @@ public class LoadingManager : MonoBehaviour
     
     private IEnumerator LoadingSequence()
     {
-        // 步骤1: 加载Space
+        // 步骤1: 等待SpaceManager初始化完成
+        UpdateLoadingUI("Initializing", 0.05f);
+        yield return new WaitForSeconds(0.5f);
+        
+        // 等待SpaceManager初始化完成
+        if (spaceManager != null)
+        {
+            Debug.Log("[LoadingManager] 等待SpaceManager初始化完成...");
+            // 这里可以添加一个检查SpaceManager是否初始化的方法
+            yield return new WaitForSeconds(1f); // 给SpaceManager足够时间初始化
+        }
+        
+        // 步骤2: 加载Space
         UpdateLoadingUI("Loading Space", 0.1f);
         yield return new WaitForSeconds(0.5f);
         
         if (spaceManager != null)
         {
-            spaceManager.LoadSpace("snekspace");
+            Debug.Log($"[LoadingManager] 检查space状态 - 已加载: {spaceManager.IsSpaceLoaded("snekspace")}, 正在加载: {spaceManager.IsSpaceLoading("snekspace")}");
+            
+            // 检查space是否已经加载或正在加载
+            if (!spaceManager.IsSpaceLoaded("snekspace") && !spaceManager.IsSpaceLoading("snekspace"))
+            {
+                Debug.Log("[LoadingManager] 开始加载space snekspace");
+                spaceManager.LoadSpace("snekspace");
+            }
+            else
+            {
+                Debug.Log("Space snekspace 已经加载或正在加载中，跳过重复加载");
+                spaceLoaded = true; // 直接标记为已加载
+            }
         }
         
         // 等待Space加载完成
@@ -83,7 +107,7 @@ public class LoadingManager : MonoBehaviour
             yield break; // 如果Space加载失败，停止加载
         }
         
-        // 步骤2: 加载Avatar
+        // 步骤3: 加载Avatar
         UpdateLoadingUI("Loading Avatar", 0.5f);
         yield return new WaitForSeconds(0.5f);
         
@@ -98,7 +122,7 @@ public class LoadingManager : MonoBehaviour
             yield return null;
         }
         
-        // 步骤3: 完成加载
+        // 步骤4: 完成加载
         UpdateLoadingUI("Load Finished", 1.0f);
         yield return new WaitForSeconds(loadingDelay);
         

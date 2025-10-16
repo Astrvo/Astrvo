@@ -14,12 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: Space
   m_GUID: fe7d598eeb10131439afccdc882b9d8b
-  m_SerializeEntries:
-  - m_GUID: 122500f088fcaf34fbbf7dfb143772d4
-    m_Address: space_snekspace
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: f677e3ee8b1e1d6468f77e3021c75e16, type: 2}
   m_SchemaSet:
