@@ -435,6 +435,7 @@ GameObject:
   - component: {fileID: 237507842}
   - component: {fileID: 237507844}
   - component: {fileID: 237507843}
+  - component: {fileID: 237507845}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -597,6 +598,27 @@ MonoBehaviour:
   pulseSpeed: 2
   pulseScale: 1.1
   enableDebugLogs: 1
+--- !u!114 &237507845
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 237507838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0cb567d2534ea84e93cbc8c508eeec5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionSystem.InteractionManager
+  interactionUIPrefab: {fileID: 7527762375135094426, guid: 99de604850e15f64082fd34fa0053d19, type: 3}
+  interactionCanvas: {fileID: 2106351789}
+  uiParent: {fileID: 2106351790}
+  detectionUpdateInterval: 0.1
+  enableAutoDetection: 1
+  uiVerticalOffset: 0.5
+  enableUIOffset: 1
+  enableDebugLogs: 0
+  showDebugGizmos: 1
 --- !u!1 &241086078
 GameObject:
   m_ObjectHideFlags: 0
@@ -10658,6 +10680,10 @@ PrefabInstance:
       propertyPath: variableJoystick
       value: 
       objectReference: {fileID: 873146799}
+    - target: {fileID: 2191012857789964884, guid: e997675ccb222c94c9385ad9ce20777d, type: 3}
+      propertyPath: enableDebugLogs
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5341780371893165765, guid: e997675ccb222c94c9385ad9ce20777d, type: 3}
       propertyPath: m_Name
       value: Player
@@ -15630,7 +15656,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &8288177545962104040
 MonoBehaviour:
   m_ObjectHideFlags: 0
