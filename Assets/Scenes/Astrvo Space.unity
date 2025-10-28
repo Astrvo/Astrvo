@@ -478,6 +478,8 @@ MonoBehaviour:
   overrideSpaceId: snekspace
   defaultLocalSpaceId: snekspace
   logVerbose: 1
+  catalogLoadTimeout: 10
+  spaceLoadTimeout: 15
 --- !u!114 &237507841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -502,6 +504,9 @@ MonoBehaviour:
   loadingDelay: 0.5
   progressAnimationSpeed: 2
   progressAnimationDelay: 0.1
+  spaceLoadTimeout: 20
+  avatarLoadTimeout: 15
+  totalLoadingTimeout: 60
 --- !u!114 &237507842
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7761,7 +7766,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_TargetDisplay: 0
 --- !u!224 &2106351790
 RectTransform:
@@ -10676,6 +10681,10 @@ PrefabInstance:
       propertyPath: m_Camera
       value: 
       objectReference: {fileID: 1123105910}
+    - target: {fileID: 453031752545060927, guid: e997675ccb222c94c9385ad9ce20777d, type: 3}
+      propertyPath: m_SortingOrder
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 475694023189817330, guid: e997675ccb222c94c9385ad9ce20777d, type: 3}
       propertyPath: variableJoystick
       value: 

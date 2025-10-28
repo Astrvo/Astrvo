@@ -1,0 +1,33 @@
+# CSS files
+*.css
+  Content-Type: text/css
+
+# JavaScript files
+*.js
+  Content-Type: application/javascript
+
+# WebAssembly files
+*.wasm
+  Content-Type: application/wasm
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+
+# Unity data files
+*.data
+  Content-Type: application/octet-stream
+
+# Bundle files
+*.bundle
+  Content-Type: application/octet-stream
+
+# Binary files
+*.bin
+  Content-Type: application/octet-stream
+
+# JSON files
+*.json
+  Content-Type: application/json
+
+# HTML files
+*.html
+  Content-Type: text/html

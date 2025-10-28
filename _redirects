@@ -1,0 +1,14 @@
+# Handle Unity WebGL routing
+/*    /index.html   200
+
+# Addressable assets - ensure they're served correctly
+/WebGL/*    /WebGL/    200
+
+# Handle Unity build files
+/Build/*    /Build/    200
+
+# Handle TemplateData files
+/TemplateData/*    /TemplateData/    200
+
+# Fallback for missing files
+/WebGL/catalog_0.1.0.bin    /catalog_0.1.0.bin    200

@@ -1,0 +1,54 @@
+[build]
+  publish = "."
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Headers configuration
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Content-Type = "text/css"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Content-Type = "application/javascript"
+
+[[headers]]
+  for = "*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"
+    Cross-Origin-Embedder-Policy = "require-corp"
+    Cross-Origin-Opener-Policy = "same-origin"
+
+[[headers]]
+  for = "*.data"
+  [headers.values]
+    Content-Type = "application/octet-stream"
+
+[[headers]]
+  for = "*.bundle"
+  [headers.values]
+    Content-Type = "application/octet-stream"
+
+[[headers]]
+  for = "*.bin"
+  [headers.values]
+    Content-Type = "application/octet-stream"
+
+[[headers]]
+  for = "*.json"
+  [headers.values]
+    Content-Type = "application/json"
+
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Content-Type = "text/html"
+
+# Basic redirects
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

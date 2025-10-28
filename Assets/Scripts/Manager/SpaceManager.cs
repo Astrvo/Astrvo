@@ -19,8 +19,14 @@ public class SpaceManager : MonoBehaviour
     [SerializeField] private string defaultLocalSpaceId = "snekspace";
     [SerializeField] private bool logVerbose = true;
     
+    [Header("超时设置")]
+    [SerializeField] private float catalogLoadTimeout = 10f; // catalog加载超时时间
+    [SerializeField] private float spaceLoadTimeout = 15f; // space加载超时时间
+    [SerializeField] private int maxSpaceLoadRetries = 5; // Space加载最大重试次数
+    
     private Dictionary<string, GameObject> loadedSpaces = new Dictionary<string, GameObject>();
     private Dictionary<string, bool> loadingSpaces = new Dictionary<string, bool>(); // 跟踪正在加载的space
+    private Dictionary<string, int> spaceLoadRetryCount = new Dictionary<string, int>(); // 跟踪每个space的重试次数
     private bool isInitialized = false;
     
     // 事件
@@ -52,7 +58,13 @@ public class SpaceManager : MonoBehaviour
         {
             LogVerbose($"正在加载远程catalog: {remoteCatalogUrl}");
             var catalogHandle = Addressables.LoadContentCatalogAsync(remoteCatalogUrl);
-            yield return catalogHandle;
+            
+            // 添加超时处理
+            float catalogLoadStartTime = Time.time;
+            while (!catalogHandle.IsDone && (Time.time - catalogLoadStartTime) < catalogLoadTimeout)
+            {
+                yield return null;
+            }
             
             if (catalogHandle.Status == AsyncOperationStatus.Succeeded)
             {
@@ -60,16 +72,24 @@ public class SpaceManager : MonoBehaviour
             }
             else
             {
-                string errorDetails = catalogHandle.OperationException?.Message ?? "未知错误";
-                Debug.LogError($"远程catalog加载失败: {errorDetails}");
+                string errorDetails = catalogHandle.OperationException?.Message ?? "Unknown error";
+                if ((Time.time - catalogLoadStartTime) >= catalogLoadTimeout)
+                {
+                    Debug.LogError($"Remote catalog loading timeout ({catalogLoadTimeout}s): {remoteCatalogUrl}");
+                    errorDetails = "Loading timeout";
+                }
+                else
+                {
+                    Debug.LogError($"Remote catalog loading failed: {errorDetails}");
+                }
                 Debug.LogError($"Catalog URL: {remoteCatalogUrl}");
                 Debug.LogError($"Status: {catalogHandle.Status}");
-                LogVerbose("将使用默认Addressable设置...");
+                LogVerbose("Will use default Addressable settings...");
             }
         }
         else
         {
-            LogVerbose("使用默认Addressable设置，跳过远程catalog加载");
+            LogVerbose("Using default Addressable settings, skipping remote catalog loading");
         }
         
         // 确保Addressables系统已初始化
@@ -183,10 +203,18 @@ public class SpaceManager : MonoBehaviour
                 yield break;
             }
             
-            // 加载Addressable资源
+            // 检查是否有Addressable资源配置
             LogVerbose($"开始加载Addressable资源: {addressKey}");
+            
+            // 尝试加载Addressable资源，但设置较短的超时时间
             var handle = Addressables.LoadAssetAsync<GameObject>(addressKey);
-            yield return handle;
+            
+            // 添加超时处理
+            float spaceLoadStartTime = Time.time;
+            while (!handle.IsDone && (Time.time - spaceLoadStartTime) < 5f) // 缩短超时时间到5秒
+            {
+                yield return null;
+            }
             
             if (handle.Status == AsyncOperationStatus.Succeeded && handle.Result != null)
             {
@@ -210,13 +238,43 @@ public class SpaceManager : MonoBehaviour
             }
             else
             {
-                string errorDetails = handle.OperationException?.Message ?? "未知错误";
-                string errorMsg = $"SpaceManager: 无法加载Space {actualSpaceId}，请检查Address Key: {addressKey}。错误: {errorDetails}，状态: {handle.Status}";
+                // Addressable resource not found or failed to load, try to retry
+                string errorDetails = handle.OperationException?.Message ?? "Unknown error";
+                if ((Time.time - spaceLoadStartTime) >= 5f)
+                {
+                    errorDetails = $"Loading timeout (5s)";
+                }
+                
+                // Check retry count
+                if (!spaceLoadRetryCount.ContainsKey(actualSpaceId))
+                {
+                    spaceLoadRetryCount[actualSpaceId] = 0;
+                }
+                
+                spaceLoadRetryCount[actualSpaceId]++;
+                
+                string errorMsg = $"SpaceManager: Failed to load Space {actualSpaceId} (attempt {spaceLoadRetryCount[actualSpaceId]}/{maxSpaceLoadRetries}), Address Key: {addressKey}. Error: {errorDetails}, Status: {handle.Status}";
                 Debug.LogError(errorMsg);
-                Debug.LogError($"尝试的Address Key: {addressKey}");
+                Debug.LogError($"Attempted Address Key: {addressKey}");
                 Debug.LogError($"Handle Status: {handle.Status}");
                 Debug.LogError($"Handle Result: {handle.Result}");
-                OnSpaceLoadFailed?.Invoke(errorMsg);
+                
+                if (spaceLoadRetryCount[actualSpaceId] < maxSpaceLoadRetries)
+                {
+                    LogVerbose($"Retrying Space {actualSpaceId} load in 2 seconds...");
+                    yield return new WaitForSeconds(2f);
+                    
+                    // Clear loading state and retry
+                    loadingSpaces[actualSpaceId] = false;
+                    StartCoroutine(LoadSpaceCoroutine(actualSpaceId));
+                    yield break;
+                }
+                else
+                {
+                    string finalErrorMsg = $"SpaceManager: Failed to load Space {actualSpaceId} after {maxSpaceLoadRetries} attempts. Address Key: {addressKey}. Final Error: {errorDetails}";
+                    Debug.LogError(finalErrorMsg);
+                    OnSpaceLoadFailed?.Invoke(finalErrorMsg);
+                }
             }
         }
         finally
@@ -307,6 +365,7 @@ public class SpaceManager : MonoBehaviour
             Debug.Log($"[SpaceManager] {message}");
         }
     }
+    
     
     void OnDestroy()
     {

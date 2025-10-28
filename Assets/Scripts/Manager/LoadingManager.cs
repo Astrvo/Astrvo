@@ -25,12 +25,19 @@ public class LoadingManager : MonoBehaviour
     [SerializeField] private float progressAnimationSpeed = 2f; // 进度条动画速度
     [SerializeField] private float progressAnimationDelay = 0.1f; // 进度条动画延迟
     
+    [Header("超时设置")]
+    [SerializeField] private float spaceLoadTimeout = 20f; // Space加载超时时间
+    [SerializeField] private float avatarLoadTimeout = 15f; // Avatar加载超时时间
+    [SerializeField] private float totalLoadingTimeout = 60f; // 总加载超时时间
+    
     private bool spaceLoaded = false;
     private bool avatarLoaded = false;
     private float currentProgress = 0f;
     private float targetProgress = 0f;
     private bool isLoadingComplete = false;
     private Coroutine progressAnimationCoroutine;
+    private int retryCount = 0;
+    private const int maxRetries = 10; // Increased retry count
     
     void Start()
     {
@@ -63,6 +70,8 @@ public class LoadingManager : MonoBehaviour
     
     private IEnumerator LoadingSequence()
     {
+        float totalStartTime = Time.time;
+        
         // 步骤1: 等待SpaceManager初始化完成
         UpdateLoadingUI("Initializing", 0.05f);
         yield return new WaitForSeconds(0.5f);
@@ -73,6 +82,14 @@ public class LoadingManager : MonoBehaviour
             Debug.Log("[LoadingManager] 等待SpaceManager初始化完成...");
             // 这里可以添加一个检查SpaceManager是否初始化的方法
             yield return new WaitForSeconds(1f); // 给SpaceManager足够时间初始化
+        }
+        
+        // 检查总超时
+        if (Time.time - totalStartTime > totalLoadingTimeout)
+        {
+            Debug.LogError("[LoadingManager] 总加载时间超时，停止加载");
+            UpdateLoadingUI("加载超时，请刷新页面重试", 0f);
+            yield break;
         }
         
         // 步骤2: 加载Space
@@ -96,15 +113,55 @@ public class LoadingManager : MonoBehaviour
             }
         }
         
-        // 等待Space加载完成
-        while (!spaceLoaded && !isLoadingComplete)
+        // 等待Space加载完成，带超时
+        float spaceLoadStartTime = Time.time;
+        while (!spaceLoaded && !isLoadingComplete && (Time.time - spaceLoadStartTime) < spaceLoadTimeout)
         {
             yield return null;
         }
         
         if (!spaceLoaded)
         {
-            yield break; // 如果Space加载失败，停止加载
+            if (Time.time - spaceLoadStartTime >= spaceLoadTimeout)
+            {
+                Debug.LogError("[LoadingManager] Space loading timeout");
+                if (retryCount < maxRetries)
+                {
+                    UpdateLoadingUI($"Space loading timeout, retrying ({retryCount + 1}/{maxRetries})", 0f);
+                    yield return new WaitForSeconds(2f); // Wait 2 seconds before retry
+                    RetryLoading();
+                    yield break;
+                }
+                else
+                {
+                    UpdateLoadingUI("Space loading failed after maximum retries, please refresh the page", 0f);
+                }
+            }
+            else
+            {
+                // Space loading failed for other reasons (not timeout)
+                Debug.LogError("[LoadingManager] Space loading failed");
+                if (retryCount < maxRetries)
+                {
+                    UpdateLoadingUI($"Space loading failed, retrying ({retryCount + 1}/{maxRetries})", 0f);
+                    yield return new WaitForSeconds(2f); // Wait 2 seconds before retry
+                    RetryLoading();
+                    yield break;
+                }
+                else
+                {
+                    UpdateLoadingUI("Space loading failed after maximum retries, please refresh the page", 0f);
+                }
+            }
+            yield break; // If Space loading failed, stop loading
+        }
+        
+        // Check total timeout
+        if (Time.time - totalStartTime > totalLoadingTimeout)
+        {
+            Debug.LogError("[LoadingManager] Total loading timeout, stopping");
+            UpdateLoadingUI("Loading timeout, please refresh the page", 0f);
+            yield break;
         }
         
         // 步骤3: 加载Avatar
@@ -116,10 +173,17 @@ public class LoadingManager : MonoBehaviour
             thirdPersonLoader.LoadAvatar(defaultAvatarUrl);
         }
         
-        // 等待Avatar加载完成
-        while (!avatarLoaded && !isLoadingComplete)
+        // 等待Avatar加载完成，带超时
+        float avatarLoadStartTime = Time.time;
+        while (!avatarLoaded && !isLoadingComplete && (Time.time - avatarLoadStartTime) < avatarLoadTimeout)
         {
             yield return null;
+        }
+        
+        if (!avatarLoaded && Time.time - avatarLoadStartTime >= avatarLoadTimeout)
+        {
+            Debug.LogWarning("[LoadingManager] Avatar loading timeout, but continuing game");
+            // Avatar loading timeout doesn't affect game continuation
         }
         
         // 步骤4: 完成加载
@@ -304,5 +368,32 @@ public class LoadingManager : MonoBehaviour
     public bool IsLoadingComplete()
     {
         return isLoadingComplete;
+    }
+    
+    /// <summary>
+    /// 重试加载
+    /// </summary>
+    public void RetryLoading()
+    {
+        if (retryCount < maxRetries)
+        {
+            retryCount++;
+            Debug.Log($"[LoadingManager] 重试加载 (第 {retryCount} 次)");
+            
+            // 重置状态
+            spaceLoaded = false;
+            avatarLoaded = false;
+            isLoadingComplete = false;
+            currentProgress = 0f;
+            targetProgress = 0f;
+            
+            // 重新开始加载
+            StartCoroutine(LoadingSequence());
+        }
+        else
+        {
+            Debug.LogError("[LoadingManager] Maximum retry attempts reached, please refresh the page");
+            UpdateLoadingUI("Loading failed, please refresh the page", 0f);
+        }
     }
 }
