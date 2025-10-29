@@ -32,6 +32,7 @@ public class SpaceManager : MonoBehaviour
     // 事件
     public event Action OnSpaceLoadComplete;
     public event Action<string> OnSpaceLoadFailed;
+    public event Action<float> OnSpaceLoadProgress; // 新增：加载进度事件
     
     void Start()
     {
@@ -209,10 +210,12 @@ public class SpaceManager : MonoBehaviour
             // 尝试加载Addressable资源，但设置较短的超时时间
             var handle = Addressables.LoadAssetAsync<GameObject>(addressKey);
             
-            // 添加超时处理
+            // 添加超时处理和进度回调
             float spaceLoadStartTime = Time.time;
             while (!handle.IsDone && (Time.time - spaceLoadStartTime) < 5f) // 缩短超时时间到5秒
             {
+                // 发送进度更新
+                OnSpaceLoadProgress?.Invoke(handle.PercentComplete);
                 yield return null;
             }
             

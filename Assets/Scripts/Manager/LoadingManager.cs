@@ -25,6 +25,11 @@ public class LoadingManager : MonoBehaviour
     [SerializeField] private float progressAnimationSpeed = 2f; // 进度条动画速度
     [SerializeField] private float progressAnimationDelay = 0.1f; // 进度条动画延迟
     
+    [Header("进度显示配置")]
+    [SerializeField] private bool showDetailedProgress = true; // 是否显示详细进度信息
+    [SerializeField] private bool showDownloadSpeed = true; // 是否显示下载速度
+    [SerializeField] private bool showEstimatedTime = true; // 是否显示预计剩余时间
+    
     [Header("超时设置")]
     [SerializeField] private float spaceLoadTimeout = 20f; // Space加载超时时间
     [SerializeField] private float avatarLoadTimeout = 15f; // Avatar加载超时时间
@@ -38,6 +43,15 @@ public class LoadingManager : MonoBehaviour
     private Coroutine progressAnimationCoroutine;
     private int retryCount = 0;
     private const int maxRetries = 10; // Increased retry count
+    
+    // 进度跟踪变量
+    private float spaceLoadProgress = 0f; // Space加载进度
+    private float avatarLoadProgress = 0f; // Avatar加载进度
+    private float spaceLoadStartTime = 0f; // Space加载开始时间
+    private float lastProgressTime = 0f; // 上次进度更新时间
+    private float lastProgressValue = 0f; // 上次进度值
+    private float downloadSpeed = 0f; // 下载速度 (MB/s)
+    private float estimatedTimeRemaining = 0f; // 预计剩余时间 (秒)
     
     void Start()
     {
@@ -57,6 +71,7 @@ public class LoadingManager : MonoBehaviour
         {
             spaceManager.OnSpaceLoadComplete += OnSpaceLoadComplete;
             spaceManager.OnSpaceLoadFailed += OnSpaceLoadFailed;
+            spaceManager.OnSpaceLoadProgress += OnSpaceLoadProgress; // 新增：订阅进度事件
         }
         
         if (thirdPersonLoader != null)
@@ -88,7 +103,7 @@ public class LoadingManager : MonoBehaviour
         if (Time.time - totalStartTime > totalLoadingTimeout)
         {
             Debug.LogError("[LoadingManager] 总加载时间超时，停止加载");
-            UpdateLoadingUI("加载超时，请刷新页面重试", 0f);
+            UpdateLoadingUI("Timeout, please refresh", 0f);
             yield break;
         }
         
@@ -98,6 +113,10 @@ public class LoadingManager : MonoBehaviour
         
         if (spaceManager != null)
         {
+            // 记录Space加载开始时间
+            spaceLoadStartTime = Time.time;
+            lastProgressTime = Time.time;
+            lastProgressValue = 0f;
             Debug.Log($"[LoadingManager] 检查space状态 - 已加载: {spaceManager.IsSpaceLoaded("snekspace")}, 正在加载: {spaceManager.IsSpaceLoading("snekspace")}");
             
             // 检查space是否已经加载或正在加载
@@ -114,27 +133,27 @@ public class LoadingManager : MonoBehaviour
         }
         
         // 等待Space加载完成，带超时
-        float spaceLoadStartTime = Time.time;
-        while (!spaceLoaded && !isLoadingComplete && (Time.time - spaceLoadStartTime) < spaceLoadTimeout)
+        float spaceLoadTimeoutStartTime = Time.time;
+        while (!spaceLoaded && !isLoadingComplete && (Time.time - spaceLoadTimeoutStartTime) < spaceLoadTimeout)
         {
             yield return null;
         }
         
         if (!spaceLoaded)
         {
-            if (Time.time - spaceLoadStartTime >= spaceLoadTimeout)
+            if (Time.time - spaceLoadTimeoutStartTime >= spaceLoadTimeout)
             {
                 Debug.LogError("[LoadingManager] Space loading timeout");
                 if (retryCount < maxRetries)
                 {
-                    UpdateLoadingUI($"Space loading timeout, retrying ({retryCount + 1}/{maxRetries})", 0f);
+                    UpdateLoadingUI($"Timeout, retry {retryCount + 1}/{maxRetries}", 0f);
                     yield return new WaitForSeconds(2f); // Wait 2 seconds before retry
                     RetryLoading();
                     yield break;
                 }
                 else
                 {
-                    UpdateLoadingUI("Space loading failed after maximum retries, please refresh the page", 0f);
+                    UpdateLoadingUI("Failed, please refresh", 0f);
                 }
             }
             else
@@ -143,14 +162,14 @@ public class LoadingManager : MonoBehaviour
                 Debug.LogError("[LoadingManager] Space loading failed");
                 if (retryCount < maxRetries)
                 {
-                    UpdateLoadingUI($"Space loading failed, retrying ({retryCount + 1}/{maxRetries})", 0f);
+                    UpdateLoadingUI($"Failed, retry {retryCount + 1}/{maxRetries}", 0f);
                     yield return new WaitForSeconds(2f); // Wait 2 seconds before retry
                     RetryLoading();
                     yield break;
                 }
                 else
                 {
-                    UpdateLoadingUI("Space loading failed after maximum retries, please refresh the page", 0f);
+                    UpdateLoadingUI("Max retries reached, refresh", 0f);
                 }
             }
             yield break; // If Space loading failed, stop loading
@@ -160,7 +179,7 @@ public class LoadingManager : MonoBehaviour
         if (Time.time - totalStartTime > totalLoadingTimeout)
         {
             Debug.LogError("[LoadingManager] Total loading timeout, stopping");
-            UpdateLoadingUI("Loading timeout, please refresh the page", 0f);
+            UpdateLoadingUI("Timeout, please refresh", 0f);
             yield break;
         }
         
@@ -187,7 +206,7 @@ public class LoadingManager : MonoBehaviour
         }
         
         // 步骤4: 完成加载
-        UpdateLoadingUI("Load Finished", 1.0f);
+        UpdateLoadingUI("Complete", 1.0f);
         yield return new WaitForSeconds(loadingDelay);
         
         // 隐藏加载界面，启用玩家控制
@@ -197,20 +216,63 @@ public class LoadingManager : MonoBehaviour
     private void OnSpaceLoadComplete()
     {
         spaceLoaded = true;
+        spaceLoadProgress = 1.0f; // 确保进度为100%
         Debug.Log("Space加载完成");
+    }
+    
+    private void OnSpaceLoadProgress(float progress)
+    {
+        spaceLoadProgress = progress;
+        
+        if (showDetailedProgress)
+        {
+            // 计算下载速度
+            if (showDownloadSpeed && progress > 0f)
+            {
+                float currentTime = Time.time;
+                float timeDelta = currentTime - lastProgressTime;
+                float progressDelta = progress - lastProgressValue;
+                
+                if (timeDelta > 0.1f && progressDelta > 0f) // 至少0.1秒和进度变化才计算速度
+                {
+                    // 假设平均资源大小为50MB，这是一个估算值
+                    float estimatedTotalSize = 50f; // MB
+                    downloadSpeed = (progressDelta * estimatedTotalSize) / timeDelta;
+                    
+                    // 计算预计剩余时间
+                    if (showEstimatedTime && downloadSpeed > 0f)
+                    {
+                        float remainingProgress = 1.0f - progress;
+                        estimatedTimeRemaining = (remainingProgress * estimatedTotalSize) / downloadSpeed;
+                    }
+                    
+                    lastProgressTime = currentTime;
+                    lastProgressValue = progress;
+                }
+            }
+            
+            // 更新UI显示
+            UpdateDetailedProgressUI();
+        }
     }
     
     private void OnSpaceLoadFailed(string error)
     {
         Debug.LogError($"Space Load Failed: {error}");
-        UpdateLoadingUI("空间加载失败，请检查网络连接", 0f);
+        UpdateLoadingUI("Network error", 0f);
         isLoadingComplete = true;
     }
     
     private void OnAvatarLoadComplete()
     {
         avatarLoaded = true;
+        avatarLoadProgress = 1.0f; // 确保进度为100%
         Debug.Log("Avatar Loaded");
+        
+        if (showDetailedProgress)
+        {
+            UpdateDetailedProgressUI();
+        }
     }
     
     private void UpdateLoadingUI(string text, float progress)
@@ -223,6 +285,71 @@ public class LoadingManager : MonoBehaviour
         // 设置目标进度并开始平滑动画
         targetProgress = progress;
         StartSmoothProgressAnimation();
+    }
+    
+    private void UpdateDetailedProgressUI()
+    {
+        if (loadingText != null && showDetailedProgress)
+        {
+            string progressText = GetLoadingStageText();
+            
+            // 添加进度百分比
+            progressText += $" ({Mathf.RoundToInt(spaceLoadProgress * 100)}%)";
+            
+            if (showDownloadSpeed && downloadSpeed > 0f)
+            {
+                progressText += $" - {downloadSpeed:F1} MB/s";
+            }
+            
+            if (showEstimatedTime && estimatedTimeRemaining > 0f)
+            {
+                if (estimatedTimeRemaining < 60f)
+                {
+                    progressText += $" - {estimatedTimeRemaining:F0}s remaining";
+                }
+                else
+                {
+                    int minutes = Mathf.FloorToInt(estimatedTimeRemaining / 60f);
+                    int seconds = Mathf.FloorToInt(estimatedTimeRemaining % 60f);
+                    progressText += $" - {minutes}m {seconds}s remaining";
+                }
+            }
+            
+            loadingText.text = progressText;
+        }
+        
+        // 更新进度条
+        float totalProgress = (spaceLoadProgress * 0.7f) + (avatarLoadProgress * 0.3f); // Space占70%，Avatar占30%
+        targetProgress = totalProgress;
+        StartSmoothProgressAnimation();
+    }
+    
+    private string GetLoadingStageText()
+    {
+        if (spaceLoadProgress < 0.1f)
+        {
+            return "Connecting";
+        }
+        else if (spaceLoadProgress < 0.3f)
+        {
+            return "Downloading";
+        }
+        else if (spaceLoadProgress < 0.7f)
+        {
+            return "Loading models";
+        }
+        else if (spaceLoadProgress < 0.9f)
+        {
+            return "Processing";
+        }
+        else if (spaceLoadProgress < 1.0f)
+        {
+            return "Finalizing";
+        }
+        else
+        {
+            return "Complete";
+        }
     }
     
     private void StartSmoothProgressAnimation()
@@ -348,6 +475,7 @@ public class LoadingManager : MonoBehaviour
         {
             spaceManager.OnSpaceLoadComplete -= OnSpaceLoadComplete;
             spaceManager.OnSpaceLoadFailed -= OnSpaceLoadFailed;
+            spaceManager.OnSpaceLoadProgress -= OnSpaceLoadProgress; // 新增：取消订阅进度事件
         }
         
         if (thirdPersonLoader != null)
@@ -393,7 +521,7 @@ public class LoadingManager : MonoBehaviour
         else
         {
             Debug.LogError("[LoadingManager] Maximum retry attempts reached, please refresh the page");
-            UpdateLoadingUI("Loading failed, please refresh the page", 0f);
+            UpdateLoadingUI("Failed, please refresh", 0f);
         }
     }
 }
