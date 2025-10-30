@@ -59,6 +59,17 @@ public class PlayFlowCloudDeploy : EditorWindow
 
     private void CreateGUI()
     {
+        if (_tree == null)
+        {
+            string path = "Assets/PlayFlowCloud/Editor/playflow.uxml";
+            _tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(path);
+            if (_tree == null)
+            {
+                Debug.LogError("PlayFlowCloud Error: Could not load UI asset. Make sure 'Assets/PlayFlowCloud/Editor/playflow.uxml' exists.");
+                return;
+            }
+        }
+        
         _tree.CloneTree(rootVisualElement);
         documentationButton = rootVisualElement.Q<Button>("ButtonDocumentation");
         discordButton = rootVisualElement.Q<Button>("ButtonDiscord");
@@ -136,12 +147,12 @@ public class PlayFlowCloudDeploy : EditorWindow
 
     private void OnDocumentationPressed()
     {
-        Application.OpenURL("https://docs.playflowcloud.com");
+        Application.OpenURL("https://documentation.playflowcloud.com");
     }
     
     private void OnQuickStartPressed()
     {
-        Application.OpenURL("https://docs.playflowcloud.com/guides/creating-your-first-server-deployment");
+        Application.OpenURL("https://documentation.playflowcloud.com/quickstart");
     }
 
     private void OnDiscordPressed()
@@ -151,7 +162,7 @@ public class PlayFlowCloudDeploy : EditorWindow
 
     private void OnPricingPressed()
     {
-        Application.OpenURL("https://www.playflowcloud.com/pricing");
+        Application.OpenURL("https://www.playflowcloud.com/#pricing");
     }
 
     private void OnGetTokenPressed()
@@ -344,12 +355,36 @@ public class PlayFlowCloudDeploy : EditorWindow
 
     private void OnUploadStatusPressed() 
     {
-        Application.OpenURL("https://app.playflowcloud.com");
+        string apiKey = tokenField.value;
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            outputLogs("API Token is required to view builds.", true);
+            return;
+        }
+        string projectID = PlayFlowAPI.GetProjectID(apiKey);
+        if (string.IsNullOrEmpty(projectID))
+        {
+            outputLogs("Could not retrieve Project ID. Please check your API token and network connection.", true);
+            return;
+        }
+        Application.OpenURL($"https://app.playflowcloud.com/projects/{projectID}/builds");
     }
 
     private void OnLaunchSimplifiedPressed()
     {
-        Application.OpenURL("https://app.playflowcloud.com");
+        string apiKey = tokenField.value;
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            outputLogs("API Token is required to launch servers.", true);
+            return;
+        }
+        string projectID = PlayFlowAPI.GetProjectID(apiKey);
+        if (string.IsNullOrEmpty(projectID))
+        {
+            outputLogs("Could not retrieve Project ID. Please check your API token and network connection.", true);
+            return;
+        }
+        Application.OpenURL($"https://app.playflowcloud.com/projects/{projectID}/servers");
     }
 
 #pragma warning disable 0168

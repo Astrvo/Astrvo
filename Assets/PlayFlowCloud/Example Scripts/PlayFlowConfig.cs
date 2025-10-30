@@ -8,12 +8,17 @@ namespace PlayFlow
     [System.Serializable]
     public class PlayFlowServerConfig
     {
-        public string match_id { get; set; }
+        [JsonProperty("instance_id")]
+        public string instance_id { get; set; }
         public string region { get; set; }
-        public string token { get; set; }
+        [JsonProperty("api-key")]
+        public string api_key { get; set; }
+        [JsonProperty("startup_args")]
+        public string startup_args { get; set; }
+        [JsonProperty("version_tag")]
+        public string version_tag { get; set; }
+        public string match_id { get; set; }
         public string arguments { get; set; }
-        public string server_tag { get; set; }
-        public string[] players { get; set; }
         public Dictionary<string, object> custom_data { get; set; }
 
         private static string ConfigPath => Path.Combine(Application.dataPath, "..", "playflow.json");

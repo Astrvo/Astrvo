@@ -1,6 +1,6 @@
 fileFormatVersion: 2
-guid: 2cfeb9b5ce5708b47b569e4d58f891d1
-DefaultImporter:
+guid: 9fbb7ca4eeb5145969cc1d4600abd981
+TextScriptImporter:
   externalObjects: {}
   userData: 
   assetBundleName: 
@@ -10,5 +10,5 @@ AssetOrigin:
   productId: 206903
   packageName: PlayFlow Cloud
   packageVersion: 15.0.0
-  assetPath: Assets/PlayFlowCloud/LICENSE
+  assetPath: Assets/PlayFlowCloud/PlayFlow Game Servers/openapi.json
   uploadId: 765121

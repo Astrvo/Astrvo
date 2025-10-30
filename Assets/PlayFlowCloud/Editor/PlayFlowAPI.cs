@@ -7,8 +7,8 @@ using UnityEngine;
 public class PlayFlowAPI
 {
     // Determine if we're in development or production based on Unity Editor
-    private static string API_URL = "http://localhost:8000";
-    // private static string API_URL =  "https://api.computeflow.cloud";
+    // private static string API_URL = "http://localhost:8000";
+    private static string API_URL =  "https://api.computeflow.cloud";
     public class PlayFlowWebClient : WebClient
     {
         protected override WebRequest GetWebRequest(Uri address)
@@ -17,6 +17,34 @@ public class PlayFlowAPI
             request.Timeout = 10000000;
             return request;
         }
+    }
+
+    [System.Serializable]
+    private class ProjectIdResponse
+    {
+        public string project_id;
+    }
+    
+    public static string GetProjectID(string apiKey)
+    {
+        string projectID = "";
+        try
+        {
+            string actionUrl = $"{API_URL}/v2/project";
+
+            using (PlayFlowWebClient client = new PlayFlowWebClient())
+            {
+                client.Headers.Add("api-key", apiKey);
+                string response = client.DownloadString(actionUrl);
+                var responseData = JsonUtility.FromJson<ProjectIdResponse>(response);
+                projectID = responseData.project_id;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e);
+        }
+        return projectID;
     }
 
     public static string Upload(string fileLocation, string apiKey, string buildName = "default")
