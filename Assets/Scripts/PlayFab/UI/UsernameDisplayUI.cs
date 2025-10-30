@@ -70,7 +70,11 @@ namespace PlayFabSystem.UI
         private void InitializeUI()
         {
             // 设置初始状态
-            if (usernameText != null)
+			if (usernameText == null)
+			{
+				TryAutoBindUsernameText();
+			}
+			if (usernameText != null)
             {
                 // 设置TextMeshPro属性
                 usernameText.richText = enableRichText;
@@ -83,28 +87,59 @@ namespace PlayFabSystem.UI
                     LogDebug("TextMeshPro font not set, please ensure font resource is assigned");
                 }
             }
-            else
-            {
-                LogError("TextMeshProUGUI component not set, please drag TextMeshPro - Text (UI) component to usernameText field");
-            }
+			else
+			{
+				LogError("TextMeshProUGUI component not set, please drag TextMeshPro - Text (UI) component to usernameText field");
+			}
             
-            if (loadingIndicator != null)
-            {
-                loadingIndicator.SetActive(showLoadingAnimation);
-            }
-            
-            // 设置初始透明度
-            if (canvasGroup != null)
-            {
-                canvasGroup.alpha = 0f;
-            }
-            
-            // 设置按钮点击事件
-            if (usernameButton != null)
-            {
-                usernameButton.onClick.AddListener(OnUsernameButtonClick);
-            }
-        }
+			if (loadingIndicator != null)
+			{
+				loadingIndicator.SetActive(showLoadingAnimation);
+			}
+			
+		}
+
+		// 在引用未设置时尝试自动绑定 Username 文本组件（避免因为场景/预制体结构调整导致引用丢失）
+		private void TryAutoBindUsernameText()
+		{
+			// 1) 优先在自身或子物体中查找
+			if (usernameText == null)
+			{
+				usernameText = GetComponentInChildren<TextMeshProUGUI>(true);
+				if (usernameText != null)
+				{
+					LogDebug("Auto-bound TextMeshProUGUI from children.");
+					return;
+				}
+			}
+
+			// 2) 在同一 Canvas 范围内查找一个命名包含 Username 的 TMP 文本
+			Canvas myCanvas = GetComponentInParent<Canvas>();
+			if (myCanvas != null)
+			{
+				var tmps = myCanvas.GetComponentsInChildren<TextMeshProUGUI>(true);
+				foreach (var tmp in tmps)
+				{
+					if (tmp != null && tmp.name.ToLower().Contains("username"))
+					{
+						usernameText = tmp;
+						LogDebug($"Auto-bound TextMeshProUGUI from Canvas child: {tmp.name}");
+						return;
+					}
+				}
+			}
+
+			// 3) 兜底：全局查找第一个 TMP 文本（不推荐，但可避免阻塞流程）
+			if (usernameText == null)
+			{
+				var any = FindObjectOfType<TextMeshProUGUI>(true);
+				if (any != null)
+				{
+					usernameText = any;
+					LogDebug($"Auto-bound TextMeshProUGUI (fallback): {any.name}");
+				}
+			}
+		}
         
         private void SubscribeToEvents()
         {

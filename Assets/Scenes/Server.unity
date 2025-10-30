@@ -182,7 +182,7 @@ MonoBehaviour:
   dontDestroyOnLoad: 1
   runInBackground: 1
   headlessStartMode: 1
-  editorAutoStart: 0
+  editorAutoStart: 1
   sendRate: 60
   offlineScene: 
   onlineScene: 
@@ -193,8 +193,8 @@ MonoBehaviour:
   disconnectInactiveConnections: 0
   disconnectInactiveTimeout: 60
   authenticator: {fileID: 0}
-  playerPrefab: {fileID: 5341780371893165765, guid: 676c760e9a61e1c46a605c2378744efb, type: 3}
-  autoCreatePlayer: 1
+  playerPrefab: {fileID: 0}
+  autoCreatePlayer: 0
   playerSpawnMethod: 0
   spawnPrefabs: []
   exceptionsDisconnect: 1
