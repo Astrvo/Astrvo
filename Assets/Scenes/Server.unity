@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 1126734361}
   - component: {fileID: 1126734360}
   - component: {fileID: 1126734359}
+  - component: {fileID: 1126734362}
   m_Layer: 0
   m_Name: NetworkServer
   m_TagString: Untagged
@@ -166,7 +167,7 @@ MonoBehaviour:
   clientWebsocketSettings:
     ClientPortOption: 0
     CustomClientPort: 7777
-  minimumLogLevel: 3
+  minimumLogLevel: 2
 --- !u!114 &1126734360
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -182,7 +183,7 @@ MonoBehaviour:
   dontDestroyOnLoad: 1
   runInBackground: 1
   headlessStartMode: 1
-  editorAutoStart: 1
+  editorAutoStart: 0
   sendRate: 60
   offlineScene: 
   onlineScene: 
@@ -227,6 +228,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1652712579 &1126734362
+MultiplayerRolesData:
+  m_ObjectHideFlags: 2
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1126734358}
+  m_GameObjectRolesMask: 3
+  m_ComponentsRolesMasks:
+  - m_Object: {fileID: 1126734360}
+    m_RolesMask: 2
+  - m_Object: {fileID: 1126734359}
+    m_RolesMask: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

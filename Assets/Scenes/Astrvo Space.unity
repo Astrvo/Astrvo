@@ -6064,8 +6064,7 @@ GameObject:
   - component: {fileID: 1582916498}
   - component: {fileID: 1582916497}
   - component: {fileID: 1582916499}
-  - component: {fileID: 1582916500}
-  - component: {fileID: 1582916501}
+  - component: {fileID: 1582916502}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -6163,33 +6162,15 @@ MonoBehaviour:
     ClientPortOption: 2
     CustomClientPort: 12246
   minimumLogLevel: 3
---- !u!114 &1582916500
-MonoBehaviour:
-  m_ObjectHideFlags: 0
+--- !u!1652712579 &1582916502
+MultiplayerRolesData:
+  m_ObjectHideFlags: 2
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1582916496}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b51c3075b86497742a38c294dc517bdf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Astrvo.Debugging.NetworkConnectivityTester
-  pingIntervalSeconds: 3
---- !u!114 &1582916501
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1582916496}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6442dc8070ceb41f094e44de0bf87274, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Mirror::Mirror.NetworkManagerHUD
-  offsetX: 0
-  offsetY: 0
+  m_GameObjectRolesMask: 3
+  m_ComponentsRolesMasks: []
 --- !u!1 &1597671956
 GameObject:
   m_ObjectHideFlags: 0
