@@ -41,7 +41,32 @@ namespace Astrvo.Space
 
         private void OnDisable()
         {
-            ctx.Cancel();
+            CancelAndDispose();
+        }
+
+        private void OnDestroy()
+        {
+            CancelAndDispose();
+        }
+
+        private void CancelAndDispose()
+        {
+            if (ctx != null)
+            {
+                try
+                {
+                    ctx.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // 已释放，忽略
+                }
+                finally
+                {
+                    ctx.Dispose();
+                    ctx = null;
+                }
+            }
         }
     }
 }

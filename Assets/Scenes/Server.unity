@@ -151,7 +151,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Mirror.Transports::Mirror.SimpleWeb.SimpleWebTransport
   maxMessageSize: 16384
-  maxHandshakeSize: 16384
+  maxHandshakeSize: 3000
   serverMaxMsgsPerTick: 10000
   clientMaxMsgsPerTick: 1000
   sendTimeout: 5000
@@ -165,8 +165,8 @@ MonoBehaviour:
   waitBeforeSend: 1
   clientUseWss: 1
   clientWebsocketSettings:
-    ClientPortOption: 0
-    CustomClientPort: 7777
+    ClientPortOption: 2
+    CustomClientPort: 13214
   minimumLogLevel: 2
 --- !u!114 &1126734360
 MonoBehaviour:
