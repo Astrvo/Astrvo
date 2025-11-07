@@ -13,7 +13,9 @@ GameObject:
   - component: {fileID: 3768624641814068962}
   - component: {fileID: 7512945385559076921}
   - component: {fileID: 6339561086241511946}
+  - component: {fileID: 6697782412578426079}
   - component: {fileID: 7446381543621365571}
+  - component: {fileID: 7438317422857588826}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -34,7 +36,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2865977150501651481}
+  - {fileID: 5946856911053635957}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7215016875899516169
@@ -79,7 +81,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6702225627773206156}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 211a9f6ec51ddc14f908f5acc0cd0423, type: 3}
   m_Name: 
@@ -95,7 +97,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6702225627773206156}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68828c85278210948b9d50a8db3aab74, type: 3}
   m_Name: 
@@ -114,6 +116,24 @@ MonoBehaviour:
   _frameRate: 500
   _shareIds: 1
   _startOnHeadless: 1
+--- !u!114 &6697782412578426079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6702225627773206156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c01ae3bb71d135f499b11b41da09f1e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DelayedPlayerSpawner
+  playerPrefab: {fileID: 5168483803316140840, guid: e997675ccb222c94c9385ad9ce20777d, type: 3}
+  spawnPoints: []
+  waitForSpaceLoad: 1
+  additionalDelay: 0.5
+  waitFixedUpdates: 3
+  verifySpaceReady: 1
 --- !u!114 &7446381543621365571
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -133,10 +153,27 @@ MonoBehaviour:
     CertificatePassword: 
     SslProtocol: 0
   _mtu: 1023
-  _port: 10562
+  _port: 11217
   _maximumClients: 2000
   _clientAddress: connect.computeflow.cloud
---- !u!1001 &1959638391103423159
+--- !u!1652712579 &7438317422857588826
+MultiplayerRolesData:
+  m_ObjectHideFlags: 2
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6702225627773206156}
+  m_GameObjectRolesMask: 3
+  m_ComponentsRolesMasks:
+  - m_Object: {fileID: 7446381543621365571}
+    m_RolesMask: 1
+  - m_Object: {fileID: 6697782412578426079}
+    m_RolesMask: 1
+  - m_Object: {fileID: 6339561086241511946}
+    m_RolesMask: 1
+  - m_Object: {fileID: 7215016875899516169}
+    m_RolesMask: 1
+--- !u!1001 &7958016024120674267
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -144,6 +181,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3235022357065353089}
     m_Modifications:
+    - target: {fileID: 818862022, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 155.09998
+      objectReference: {fileID: 0}
+    - target: {fileID: 818862022, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -52.69995
+      objectReference: {fileID: 0}
     - target: {fileID: 4393252310969058990, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -225,6 +270,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4393252310969058994, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4393252310969058994, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
       propertyPath: _autoStartType
       value: 3
       objectReference: {fileID: 0}
@@ -237,8 +286,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
---- !u!224 &2865977150501651481 stripped
+--- !u!224 &5946856911053635957 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4393252310969058990, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
-  m_PrefabInstance: {fileID: 1959638391103423159}
+  m_PrefabInstance: {fileID: 7958016024120674267}
   m_PrefabAsset: {fileID: 0}

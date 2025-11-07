@@ -18,9 +18,11 @@ public class LoadingManager : MonoBehaviour
     [SerializeField] private ThirdPersonLoader thirdPersonLoader;
     [SerializeField] private ThirdPersonController thirdPersonController;
     [SerializeField] private CameraOrbit cameraOrbit;
+    [SerializeField] private DelayedPlayerSpawner playerSpawner;
     
     [Header("配置")]
-    [SerializeField] private string defaultAvatarUrl = "https://models.readyplayer.me/64a1a5a0b0b8b8b8b8b8b8b8.glb";
+    [SerializeField] private string defaultAvatarUrl = "https://models.readyplayer.me/64a1a5a0b0b8b8b8b8b8b8.glb";
+    [SerializeField] private bool useFishNetPlayer = true; // 是否使用FishNet player（替代avatar加载）
     [SerializeField] private float loadingDelay = 0.5f; // 延迟显示加载完成，让用户看到100%
     [SerializeField] private float progressAnimationSpeed = 2f; // 进度条动画速度
     [SerializeField] private float progressAnimationDelay = 0.1f; // 进度条动画延迟
@@ -32,11 +34,12 @@ public class LoadingManager : MonoBehaviour
     
     [Header("超时设置")]
     [SerializeField] private float spaceLoadTimeout = 20f; // Space加载超时时间
-    [SerializeField] private float avatarLoadTimeout = 15f; // Avatar加载超时时间
+    [SerializeField] private float avatarLoadTimeout = 15f; // Avatar加载超时时间（或Player生成超时）
     [SerializeField] private float totalLoadingTimeout = 60f; // 总加载超时时间
     
     private bool spaceLoaded = false;
     private bool avatarLoaded = false;
+    private bool playerSpawned = false; // FishNet player是否已生成
     private float currentProgress = 0f;
     private float targetProgress = 0f;
     private bool isLoadingComplete = false;
@@ -74,7 +77,12 @@ public class LoadingManager : MonoBehaviour
             spaceManager.OnSpaceLoadProgress += OnSpaceLoadProgress; // 新增：订阅进度事件
         }
         
-        if (thirdPersonLoader != null)
+        if (useFishNetPlayer)
+        {
+            // 订阅PlayerNetworkSync的静态事件
+            PlayerNetworkSync.OnLocalPlayerInitialized += OnPlayerSpawned;
+        }
+        else if (thirdPersonLoader != null)
         {
             thirdPersonLoader.OnLoadComplete += OnAvatarLoadComplete;
         }
@@ -183,26 +191,55 @@ public class LoadingManager : MonoBehaviour
             yield break;
         }
         
-        // 步骤3: 加载Avatar
-        UpdateLoadingUI("Loading Avatar", 0.5f);
-        yield return new WaitForSeconds(0.5f);
-        
-        if (thirdPersonLoader != null && !string.IsNullOrEmpty(defaultAvatarUrl))
+        // 步骤3: 加载Player/Avatar
+        if (useFishNetPlayer && playerSpawner != null)
         {
-            thirdPersonLoader.LoadAvatar(defaultAvatarUrl);
+            // 等待FishNet Player生成
+            UpdateLoadingUI("Loading Player", 0.5f);
+            yield return new WaitForSeconds(0.5f);
+            
+            // 等待Player生成完成，带超时
+            float playerLoadStartTime = Time.time;
+            while (!playerSpawned && !isLoadingComplete && (Time.time - playerLoadStartTime) < avatarLoadTimeout)
+            {
+                yield return null;
+            }
+            
+            if (!playerSpawned && Time.time - playerLoadStartTime >= avatarLoadTimeout)
+            {
+                Debug.LogWarning("[LoadingManager] Player spawn timeout, but continuing game");
+                // Player spawn timeout doesn't affect game continuation
+            }
+            else if (playerSpawned)
+            {
+                avatarLoaded = true; // 标记为已完成，以便进度条显示正确
+                avatarLoadProgress = 1.0f;
+                Debug.Log("[LoadingManager] Player spawned successfully");
+            }
         }
-        
-        // 等待Avatar加载完成，带超时
-        float avatarLoadStartTime = Time.time;
-        while (!avatarLoaded && !isLoadingComplete && (Time.time - avatarLoadStartTime) < avatarLoadTimeout)
+        else
         {
-            yield return null;
-        }
-        
-        if (!avatarLoaded && Time.time - avatarLoadStartTime >= avatarLoadTimeout)
-        {
-            Debug.LogWarning("[LoadingManager] Avatar loading timeout, but continuing game");
-            // Avatar loading timeout doesn't affect game continuation
+            // 使用原有的Avatar加载方式
+            UpdateLoadingUI("Loading Avatar", 0.5f);
+            yield return new WaitForSeconds(0.5f);
+            
+            if (thirdPersonLoader != null && !string.IsNullOrEmpty(defaultAvatarUrl))
+            {
+                thirdPersonLoader.LoadAvatar(defaultAvatarUrl);
+            }
+            
+            // 等待Avatar加载完成，带超时
+            float avatarLoadStartTime = Time.time;
+            while (!avatarLoaded && !isLoadingComplete && (Time.time - avatarLoadStartTime) < avatarLoadTimeout)
+            {
+                yield return null;
+            }
+            
+            if (!avatarLoaded && Time.time - avatarLoadStartTime >= avatarLoadTimeout)
+            {
+                Debug.LogWarning("[LoadingManager] Avatar loading timeout, but continuing game");
+                // Avatar loading timeout doesn't affect game continuation
+            }
         }
         
         // 步骤4: 完成加载
@@ -261,6 +298,19 @@ public class LoadingManager : MonoBehaviour
         Debug.LogError($"Space Load Failed: {error}");
         UpdateLoadingUI("Network error", 0f);
         isLoadingComplete = true;
+    }
+    
+    private void OnPlayerSpawned(FishNet.Object.NetworkObject playerObject)
+    {
+        playerSpawned = true;
+        avatarLoaded = true; // 也标记avatar为已加载，以保持兼容性
+        avatarLoadProgress = 1.0f; // 确保进度为100%
+        Debug.Log("[LoadingManager] FishNet Player spawned");
+        
+        if (showDetailedProgress)
+        {
+            UpdateDetailedProgressUI();
+        }
     }
     
     private void OnAvatarLoadComplete()
@@ -478,7 +528,12 @@ public class LoadingManager : MonoBehaviour
             spaceManager.OnSpaceLoadProgress -= OnSpaceLoadProgress; // 新增：取消订阅进度事件
         }
         
-        if (thirdPersonLoader != null)
+        if (useFishNetPlayer)
+        {
+            // 取消订阅PlayerNetworkSync的静态事件
+            PlayerNetworkSync.OnLocalPlayerInitialized -= OnPlayerSpawned;
+        }
+        else if (thirdPersonLoader != null)
         {
             thirdPersonLoader.OnLoadComplete -= OnAvatarLoadComplete;
         }
@@ -511,6 +566,7 @@ public class LoadingManager : MonoBehaviour
             // 重置状态
             spaceLoaded = false;
             avatarLoaded = false;
+            playerSpawned = false;
             isLoadingComplete = false;
             currentProgress = 0f;
             targetProgress = 0f;

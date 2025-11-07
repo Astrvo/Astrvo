@@ -501,7 +501,9 @@ MonoBehaviour:
   thirdPersonLoader: {fileID: 0}
   thirdPersonController: {fileID: 0}
   cameraOrbit: {fileID: 0}
+  playerSpawner: {fileID: 0}
   defaultAvatarUrl: https://models.readyplayer.me/68ed0b02bba6979c6ef45a67.glb
+  useFishNetPlayer: 1
   loadingDelay: 0.5
   progressAnimationSpeed: 2
   progressAnimationDelay: 0.1

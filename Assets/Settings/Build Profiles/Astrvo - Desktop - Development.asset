@@ -22,8 +22,6 @@ MonoBehaviour:
   m_Scenes:
   - m_enabled: 1
     m_path: Assets/Scenes/Astrvo Space.unity
-  - m_enabled: 1
-    m_path: Assets/Scenes/Server.unity
   m_ScriptingDefines: []
   m_PlayerSettingsYaml:
     m_Settings:
@@ -886,7 +884,7 @@ MonoBehaviour:
     - line: '|     Server: EDGEGAP_PLUGIN_SERVERS'
     - line: '|     Standalone: READY_PLAYER_ME;UNITY_POST_PROCESSING_STACK_V2;MIRROR;MIRROR_89_OR_NEWER;MIRROR_90_OR_NEWER;MIRROR_93_OR_NEWER;MIRROR_96_OR_NEWER'
     - line: '|     VisionOS: READY_PLAYER_ME;UNITY_POST_PROCESSING_STACK_V2'
-    - line: '|     WebGL: READY_PLAYER_ME;MIRROR;MIRROR_89_OR_NEWER;MIRROR_90_OR_NEWER;MIRROR_93_OR_NEWER;MIRROR_96_OR_NEWER;EDGEGAP_PLUGIN_SERVERS;UNITY_POST_PROCESSING_STACK_V2;APP_UI_EDITOR_ONLY'
+    - line: '|     WebGL: READY_PLAYER_ME;MIRROR;MIRROR_89_OR_NEWER;MIRROR_90_OR_NEWER;MIRROR_93_OR_NEWER;MIRROR_96_OR_NEWER;EDGEGAP_PLUGIN_SERVERS;UNITY_POST_PROCESSING_STACK_V2;APP_UI_EDITOR_ONLY;FISHNET;FISHNET_V4'
     - line: '|     Windows Store Apps: READY_PLAYER_ME'
     - line: '|     XboxOne: READY_PLAYER_ME;UNITY_POST_PROCESSING_STACK_V2'
     - line: '|     iPhone: READY_PLAYER_ME'
