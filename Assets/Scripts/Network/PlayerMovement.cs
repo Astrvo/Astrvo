@@ -217,8 +217,26 @@ public class PlayerMovement : NetworkBehaviour
         }
         
         // 使用GroundCheck的方式：Physics.CheckSphere
+        // 但需要排除玩家对象，避免多个玩家挤在一起时误判
         Vector3 position = transform.position;
         Vector3 spherePosition = new Vector3(position.x, position.y + groundedOffset, position.z);
-        return Physics.CheckSphere(spherePosition, groundRadius, groundMask);
+        
+        // 使用OverlapSphere然后过滤掉玩家对象
+        Collider[] colliders = Physics.OverlapSphere(spherePosition, groundRadius, groundMask, QueryTriggerInteraction.Ignore);
+        
+        // 过滤掉玩家对象（通过Tag判断）
+        foreach (Collider col in colliders)
+        {
+            // 跳过玩家对象（通过Tag判断）
+            if (col.CompareTag("Player"))
+            {
+                continue;
+            }
+            
+            // 如果检测到非玩家的Collider，说明在地面上
+            return true;
+        }
+        
+        return false;
     }
 }

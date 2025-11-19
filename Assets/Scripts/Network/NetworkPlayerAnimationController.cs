@@ -23,10 +23,20 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
     [Header("动画设置")]
     [SerializeField] private float animationSmoothTime = 0.1f;
     
+    [Header("地面检测设置（用于非Owner客户端）")]
+    [SerializeField] private float groundedOffset = -0.22f; // 与PlayerMovement保持一致
+    [SerializeField] private float groundRadius = 0.28f; // 与PlayerMovement保持一致
+    [SerializeField] private LayerMask groundMask = -1; // 与PlayerMovement保持一致
+    
     private Animator animator;
     private GameObject avatar;
     private float fallTimeoutDelta;
     private bool isInitialized = false;
+    
+    // 用于非Owner客户端计算移动速度
+    private Vector3 lastPosition;
+    private float calculatedMoveSpeed = 0f;
+    private float moveSpeedSmoothVelocity = 0f;
 
     public override void OnStartClient()
     {
@@ -50,6 +60,11 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
                 characterController = GetComponentInParent<CharacterController>();
             }
         }
+        
+        // 初始化位置跟踪（用于非Owner客户端计算速度）
+        lastPosition = transform.position;
+        calculatedMoveSpeed = 0f;
+        moveSpeedSmoothVelocity = 0f;
         
         // 尝试监听NetworkThirdPersonLoader的加载完成事件
         TrySubscribeToLoader();
@@ -129,7 +144,21 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
                 {
                     animator.applyRootMotion = false;
                     isInitialized = true;
-                    Debug.Log($"[NetworkPlayerAnimationController] Avatar loaded and initialized. Avatar: {avatar.name}");
+                    
+                    // 初始化fallTimeoutDelta，避免立即进入掉落状态
+                    fallTimeoutDelta = FALL_TIMEOUT;
+                    
+                    // 初始化位置跟踪（用于非Owner客户端计算速度）
+                    lastPosition = transform.position;
+                    calculatedMoveSpeed = 0f;
+                    moveSpeedSmoothVelocity = 0f;
+                    
+                    // 立即检查一次地面状态并设置动画参数
+                    bool isGrounded = IsGrounded();
+                    animator.SetBool(IsGroundedHash, isGrounded);
+                    animator.SetBool(FreeFallHash, !isGrounded);
+                    
+                    Debug.Log($"[NetworkPlayerAnimationController] Avatar loaded and initialized. Avatar: {avatar.name}, IsGrounded: {isGrounded}");
                 }
                 else
                 {
@@ -179,7 +208,20 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
         animator.applyRootMotion = false;
         isInitialized = true;
         
-        Debug.Log($"[NetworkPlayerAnimationController] Setup complete. Avatar: {avatar.name}, Animator: {(animator != null ? "Found" : "Missing")}, Controller: {(runtimeAnimatorController != null ? runtimeAnimatorController.name : "None")}");
+        // 初始化fallTimeoutDelta，避免立即进入掉落状态
+        fallTimeoutDelta = FALL_TIMEOUT;
+        
+        // 初始化位置跟踪（用于非Owner客户端计算速度）
+        lastPosition = transform.position;
+        calculatedMoveSpeed = 0f;
+        moveSpeedSmoothVelocity = 0f;
+        
+        // 立即检查一次地面状态并设置动画参数
+        bool isGrounded = IsGrounded();
+        animator.SetBool(IsGroundedHash, isGrounded);
+        animator.SetBool(FreeFallHash, !isGrounded);
+        
+        Debug.Log($"[NetworkPlayerAnimationController] Setup complete. Avatar: {avatar.name}, Animator: {(animator != null ? "Found" : "Missing")}, Controller: {(runtimeAnimatorController != null ? runtimeAnimatorController.name : "None")}, IsGrounded: {isGrounded}");
     }
 
     void Update()
@@ -188,7 +230,34 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
         if (!isInitialized || animator == null || avatar == null)
             return;
         
+        // 对于非Owner客户端，计算移动速度
+        if (!IsOwner)
+        {
+            CalculateMoveSpeedFromPosition();
+        }
+        
         UpdateAnimator();
+    }
+    
+    /// <summary>
+    /// 根据位置变化计算移动速度（用于非Owner客户端）
+    /// </summary>
+    private void CalculateMoveSpeedFromPosition()
+    {
+        Vector3 currentPosition = transform.position;
+        
+        // 计算水平移动距离（忽略Y轴）
+        Vector3 horizontalDelta = currentPosition - lastPosition;
+        horizontalDelta.y = 0f; // 只计算水平移动
+        
+        // 计算速度（米/秒）
+        float speed = horizontalDelta.magnitude / Time.deltaTime;
+        
+        // 平滑速度变化，避免抖动
+        calculatedMoveSpeed = Mathf.SmoothDamp(calculatedMoveSpeed, speed, ref moveSpeedSmoothVelocity, 0.1f);
+        
+        // 更新上一帧位置
+        lastPosition = currentPosition;
     }
     
     /// <summary>
@@ -198,9 +267,19 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
     {
         // 获取移动速度
         float targetMoveSpeed = 0f;
-        if (playerMovement != null)
+        
+        if (IsOwner)
         {
-            targetMoveSpeed = playerMovement.CurrentMoveSpeed;
+            // Owner客户端：从PlayerMovement获取
+            if (playerMovement != null)
+            {
+                targetMoveSpeed = playerMovement.CurrentMoveSpeed;
+            }
+        }
+        else
+        {
+            // 非Owner客户端：使用计算出的速度
+            targetMoveSpeed = calculatedMoveSpeed;
         }
         
         // 设置移动速度参数（ThirdPersonController直接设置，不进行平滑）
@@ -236,13 +315,34 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
     /// </summary>
     private bool IsGrounded()
     {
-        if (characterController != null)
+        // 对于Owner客户端，优先使用CharacterController.isGrounded（更准确）
+        if (IsOwner && characterController != null && characterController.enabled)
         {
             return characterController.isGrounded;
         }
         
-        // 如果没有CharacterController，使用简单的射线检测
-        return Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, 0.2f);
+        // 非Owner客户端或CharacterController不可用时，使用物理检测
+        // 使用与PlayerMovement和GroundCheck相同的地面检测方式
+        Vector3 position = transform.position;
+        Vector3 spherePosition = new Vector3(position.x, position.y + groundedOffset, position.z);
+        
+        // 使用OverlapSphere然后过滤掉玩家对象，避免多个玩家挤在一起时误判
+        Collider[] colliders = Physics.OverlapSphere(spherePosition, groundRadius, groundMask, QueryTriggerInteraction.Ignore);
+        
+        // 过滤掉玩家对象（通过Tag或Layer判断）
+        foreach (Collider col in colliders)
+        {
+            // 跳过玩家对象（通过Tag判断）
+            if (col.CompareTag("Player"))
+            {
+                continue;
+            }
+            
+            // 如果检测到非玩家的Collider，说明在地面上
+            return true;
+        }
+        
+        return false;
     }
     
     /// <summary>

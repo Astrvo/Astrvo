@@ -34,7 +34,7 @@ public class PlayerNameTag : NetworkBehaviour
     {
         base.OnStartClient();
         
-        // 初始化名称标签
+        // 初始化名称标签（所有客户端都需要）
         InitializeNameTag();
         
         // 订阅用户名变化事件
@@ -47,10 +47,17 @@ public class PlayerNameTag : NetworkBehaviour
         }
         else
         {
-            // 非Owner等待用户名同步
+            // 非Owner：如果已经有同步的用户名，立即显示
             if (!string.IsNullOrEmpty(_playerName.Value))
             {
                 UpdateNameDisplay(_playerName.Value);
+                LogDebug($"Non-owner: Displaying existing name: {_playerName.Value}");
+            }
+            else
+            {
+                // 如果还没有同步，显示临时文本，等待SyncVar更新
+                UpdateNameDisplay("Loading...");
+                LogDebug("Non-owner: Waiting for name to sync...");
             }
         }
     }
@@ -147,11 +154,15 @@ public class PlayerNameTag : NetworkBehaviour
             }
         }
         
-        // 设置名称标签位置
+        // 设置名称标签位置（确保在每个玩家头上）
         if (nameCanvas != null)
         {
             _nameTagTransform = nameCanvas.transform;
+            // 确保名称标签在玩家头上（相对于玩家transform）
             _nameTagTransform.localPosition = new Vector3(0, nameTagHeight, 0);
+            _nameTagTransform.localRotation = Quaternion.identity; // 初始无旋转
+            
+            LogDebug($"Name tag position set to local position (0, {nameTagHeight}, 0)");
         }
         
         // 配置TextMeshProUGUI
@@ -161,6 +172,18 @@ public class PlayerNameTag : NetworkBehaviour
             nameText.color = nameColor;
             nameText.alignment = TextAlignmentOptions.Center;
             nameText.text = "Loading...";
+            
+            // 确保TextMeshProUGUI是激活的
+            if (!nameText.gameObject.activeSelf)
+            {
+                nameText.gameObject.SetActive(true);
+            }
+        }
+        
+        // 确保Canvas是激活的
+        if (nameCanvas != null && !nameCanvas.gameObject.activeSelf)
+        {
+            nameCanvas.gameObject.SetActive(true);
         }
         
         // 获取主相机
@@ -170,7 +193,7 @@ public class PlayerNameTag : NetworkBehaviour
             _mainCamera = FindObjectOfType<Camera>();
         }
         
-        LogDebug("Name tag initialized");
+        LogDebug($"Name tag initialized (IsOwner: {IsOwner}, NetworkObjectId: {NetworkObject.ObjectId})");
     }
     
     /// <summary>
@@ -256,6 +279,7 @@ public class PlayerNameTag : NetworkBehaviour
     /// </summary>
     private void OnPlayerNameChanged(string oldName, string newName, bool asServer)
     {
+        LogDebug($"Player name changed from '{oldName}' to '{newName}' (asServer: {asServer}, IsOwner: {IsOwner})");
         UpdateNameDisplay(newName);
     }
     
@@ -267,19 +291,43 @@ public class PlayerNameTag : NetworkBehaviour
         if (nameText != null)
         {
             nameText.text = name;
-            LogDebug($"Name display updated: {name}");
+            
+            // 确保Text和Canvas都是激活的
+            if (!nameText.gameObject.activeSelf)
+            {
+                nameText.gameObject.SetActive(true);
+            }
+            if (nameCanvas != null && !nameCanvas.gameObject.activeSelf)
+            {
+                nameCanvas.gameObject.SetActive(true);
+            }
+            
+            LogDebug($"Name display updated: '{name}' (IsOwner: {IsOwner})");
         }
         else
         {
-            LogDebug("NameText is null, cannot update display");
+            LogDebug("NameText is null, cannot update display. Re-initializing...");
+            // 如果nameText为null，尝试重新初始化
+            InitializeNameTag();
+            if (nameText != null)
+            {
+                nameText.text = name;
+            }
         }
     }
     
     private void LateUpdate()
     {
-        // 让名称标签始终面向相机
+        // 让名称标签始终面向相机（所有客户端都需要）
         if (lookAtCamera && _nameTagTransform != null)
         {
+            // 确保名称标签是激活的
+            if (!_nameTagTransform.gameObject.activeSelf)
+            {
+                _nameTagTransform.gameObject.SetActive(true);
+            }
+            
+            // 更新相机引用（确保使用正确的相机）
             if (_mainCamera == null)
             {
                 _mainCamera = Camera.main;
@@ -289,10 +337,37 @@ public class PlayerNameTag : NetworkBehaviour
                 }
             }
             
-            if (_mainCamera != null)
+            // 尝试找到NetworkCameraController的相机（如果是Owner的相机）
+            if (_mainCamera == null || (!_mainCamera.enabled || !_mainCamera.gameObject.activeInHierarchy))
             {
-                _nameTagTransform.LookAt(_nameTagTransform.position + _mainCamera.transform.rotation * Vector3.forward,
-                    _mainCamera.transform.rotation * Vector3.up);
+                // 查找所有激活的相机
+                Camera[] cameras = FindObjectsOfType<Camera>();
+                foreach (Camera cam in cameras)
+                {
+                    if (cam.enabled && cam.gameObject.activeInHierarchy)
+                    {
+                        _mainCamera = cam;
+                        break;
+                    }
+                }
+            }
+            
+            if (_mainCamera != null && _mainCamera.enabled)
+            {
+                // 计算从名称标签到相机的方向
+                Vector3 directionToCamera = _mainCamera.transform.position - _nameTagTransform.position;
+                
+                // 如果距离太近，不旋转（避免抖动）
+                if (directionToCamera.magnitude > 0.01f)
+                {
+                    // 让名称标签面向相机（使用LookAt）
+                    // 注意：LookAt会让对象朝向目标，但我们需要保持Y轴旋转
+                    _nameTagTransform.LookAt(_mainCamera.transform);
+                    
+                    // 确保名称标签不会上下翻转（只保留Y轴旋转，X和Z设为0）
+                    Vector3 eulerAngles = _nameTagTransform.eulerAngles;
+                    _nameTagTransform.rotation = Quaternion.Euler(0f, eulerAngles.y, 0f);
+                }
             }
         }
     }

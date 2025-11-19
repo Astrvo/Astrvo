@@ -675,6 +675,7 @@ MonoBehaviour:
   animatorController: {fileID: 9100000, guid: bea63b6083163f247878bb28fe8da8be, type: 2}
   loadOnStart: 1
   previewAvatar: {fileID: 0}
+  enableDebugLogs: 1
 --- !u!114 &-3878073652850662119
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -851,9 +852,9 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8777500923111060359}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2348403603121187604}
@@ -862,9 +863,9 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 445.40002, y: 232.1}
+  m_SizeDelta: {x: 890.80005, y: 464.2}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &453031752545060927
 Canvas:
   m_ObjectHideFlags: 0
@@ -874,7 +875,7 @@ Canvas:
   m_GameObject: {fileID: 8777500923111060359}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
+  m_RenderMode: 2
   m_Camera: {fileID: 8998968987339310229}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
@@ -910,7 +911,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
+  m_PresetInfoIsWorld: 1
 --- !u!114 &2277789334220459176
 MonoBehaviour:
   m_ObjectHideFlags: 0
