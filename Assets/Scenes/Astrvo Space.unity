@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: c9bf046abb74e439fa65d43eef6d9b52, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 304449922f7da4d579ccbab2bd2327e1, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -94,7 +94,7 @@ LightmapSettings:
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 20201, guid: 0000000000000000f000000000000000, type: 0}
-  m_LightingSettings: {fileID: 0}
+  m_LightingSettings: {fileID: 4890085278179872738, guid: 692e129aefe354f999c81497cf533f8c, type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -365,62 +365,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 180345571}
   m_CullTransparentMesh: 1
---- !u!1 &200806131
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 200806133}
-  - component: {fileID: 200806132}
-  m_Layer: 0
-  m_Name: PersonalAvatarLoader
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &200806132
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 200806131}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 707b0a470d481d94fbbd7427c5d6a880, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  openPersonalAvatarPanelButtonText: {fileID: 1163686839}
-  linkText: {fileID: 576652124}
-  avatarUrlField: {fileID: 1168962533}
-  openPersonalAvatarPanelButton: {fileID: 1870617777}
-  closeButton: {fileID: 263772905}
-  linkButton: {fileID: 250103206}
-  loadAvatarButton: {fileID: 1061582525}
-  avatarLoading: {fileID: 0}
-  personalAvatarPanel: {fileID: 944222469}
-  thirdPersonLoader: {fileID: 0}
-  cameraOrbit: {fileID: 0}
-  thirdPersonController: {fileID: 0}
---- !u!4 &200806133
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 200806131}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &237507838
 GameObject:
   m_ObjectHideFlags: 0
@@ -498,12 +442,6 @@ MonoBehaviour:
   loadingText: {fileID: 2025108944}
   progressText: {fileID: 670259597}
   spaceManager: {fileID: 237507840}
-  thirdPersonLoader: {fileID: 0}
-  thirdPersonController: {fileID: 0}
-  cameraOrbit: {fileID: 0}
-  playerSpawner: {fileID: 0}
-  defaultAvatarUrl: https://models.readyplayer.me/68ed0b02bba6979c6ef45a67.glb
-  useFishNetPlayer: 1
   loadingDelay: 0.5
   progressAnimationSpeed: 2
   progressAnimationDelay: 0.1
@@ -511,7 +449,6 @@ MonoBehaviour:
   showDownloadSpeed: 1
   showEstimatedTime: 1
   spaceLoadTimeout: 20
-  avatarLoadTimeout: 15
   totalLoadingTimeout: 60
 --- !u!114 &237507842
 MonoBehaviour:
@@ -1369,6 +1306,11 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &366722397 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &406304090
 GameObject:
   m_ObjectHideFlags: 0
@@ -1725,10 +1667,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 2483312418554751214, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 3235022357065353089, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 288.76303
@@ -1769,26 +1707,40 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6193185483334673133, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: m_IsActive
-      value: 0
+    - target: {fileID: 3768624641814068962, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
       propertyPath: m_Name
       value: NetworkManager
       objectReference: {fileID: 0}
-    - target: {fileID: 7446381543621365571, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: _port
-      value: 10476
+    - target: {fileID: 7215016875899516169, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      propertyPath: _spawnablePrefabs
+      value: 
+      objectReference: {fileID: 11400000, guid: 0a248cff427c166488d4e71805489d5a, type: 2}
+    - target: {fileID: 7438317422857588826, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      propertyPath: m_ComponentsRolesMasks.Array.size
+      value: 2
       objectReference: {fileID: 0}
-    - target: {fileID: 7958016024385327134, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
+    - target: {fileID: 7438317422857588826, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      propertyPath: m_ComponentsRolesMasks.Array.data[0].m_Object
+      value: 
+      objectReference: {fileID: 1185987130}
+    - target: {fileID: 7438317422857588826, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      propertyPath: m_ComponentsRolesMasks.Array.data[1].m_Object
+      value: 
+      objectReference: {fileID: 1185987133}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1185987139}
+    - targetCorrespondingSourceObject: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1185987140}
   m_SourcePrefab: {fileID: 100100000, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
 --- !u!1 &473533534
 GameObject:
@@ -5058,6 +5010,56 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1173381871}
   m_CullTransparentMesh: 1
+--- !u!114 &1185987130 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6339561086241511946, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366722397}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68828c85278210948b9d50a8db3aab74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Managing.Server.ServerManager
+--- !u!114 &1185987133 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7215016875899516169, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366722397}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2c95dfde7d73b54dbbdc23155d35d36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1185987139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366722397}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 211a9f6ec51ddc14f908f5acc0cd0423, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Spawning.PlayerSpawner
+  _playerPrefab: {fileID: 735510397914732398, guid: 789ebfeb64995434baf76a7edc703067, type: 3}
+  _addToDefaultScene: 1
+  Spawns: []
+--- !u!114 &1185987140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366722397}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41fedf4e73120c746962249413be1b7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerVisibilityManager
+  enableDebugLogs: 1
 --- !u!1 &1267556126
 GameObject:
   m_ObjectHideFlags: 0
@@ -16422,7 +16424,6 @@ SceneRoots:
   - {fileID: 1956113268}
   - {fileID: 2106351790}
   - {fileID: 557115169}
-  - {fileID: 200806133}
   - {fileID: 8070752098380189735}
   - {fileID: 237507839}
   - {fileID: 451277390}

@@ -11,9 +11,7 @@ GameObject:
   - component: {fileID: 3235022357065353089}
   - component: {fileID: 7215016875899516169}
   - component: {fileID: 3768624641814068962}
-  - component: {fileID: 7512945385559076921}
   - component: {fileID: 6339561086241511946}
-  - component: {fileID: 6697782412578426079}
   - component: {fileID: 7446381543621365571}
   - component: {fileID: 7438317422857588826}
   m_Layer: 0
@@ -65,7 +63,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6702225627773206156}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d331f979d46e8e4a9fc90070c596d44, type: 3}
   m_Name: 
@@ -74,22 +72,6 @@ MonoBehaviour:
   _maximumTimedObserversDuration: 10
   _defaultConditions:
   - {fileID: 11400000, guid: 2033f54fd2794464bae08fa5a55c8996, type: 2}
---- !u!114 &7512945385559076921
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6702225627773206156}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 211a9f6ec51ddc14f908f5acc0cd0423, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _playerPrefab: {fileID: 5168483803316140840, guid: e997675ccb222c94c9385ad9ce20777d, type: 3}
-  _addToDefaultScene: 1
-  Spawns:
-  - {fileID: 0}
 --- !u!114 &6339561086241511946
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -116,24 +98,6 @@ MonoBehaviour:
   _frameRate: 500
   _shareIds: 1
   _startOnHeadless: 1
---- !u!114 &6697782412578426079
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6702225627773206156}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c01ae3bb71d135f499b11b41da09f1e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DelayedPlayerSpawner
-  playerPrefab: {fileID: 5168483803316140840, guid: e997675ccb222c94c9385ad9ce20777d, type: 3}
-  spawnPoints: []
-  waitForSpaceLoad: 1
-  additionalDelay: 0.5
-  waitFixedUpdates: 3
-  verifySpaceReady: 1
 --- !u!114 &7446381543621365571
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -153,7 +117,7 @@ MonoBehaviour:
     CertificatePassword: 
     SslProtocol: 0
   _mtu: 1023
-  _port: 11217
+  _port: 10476
   _maximumClients: 2000
   _clientAddress: connect.computeflow.cloud
 --- !u!1652712579 &7438317422857588826
@@ -167,8 +131,6 @@ MultiplayerRolesData:
   m_ComponentsRolesMasks:
   - m_Object: {fileID: 7446381543621365571}
     m_RolesMask: 1
-  - m_Object: {fileID: 6697782412578426079}
-    m_RolesMask: 1
   - m_Object: {fileID: 6339561086241511946}
     m_RolesMask: 1
   - m_Object: {fileID: 7215016875899516169}
@@ -181,6 +143,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3235022357065353089}
     m_Modifications:
+    - target: {fileID: 818862021, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 818862022, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
       propertyPath: m_AnchoredPosition.x
       value: 155.09998
@@ -188,6 +154,10 @@ PrefabInstance:
     - target: {fileID: 818862022, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: -52.69995
+      objectReference: {fileID: 0}
+    - target: {fileID: 4288007435728233782, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4393252310969058990, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
       propertyPath: m_Pivot.x
@@ -280,6 +250,10 @@ PrefabInstance:
     - target: {fileID: 4393252310969058995, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
       propertyPath: m_Name
       value: NetworkHudCanvas
+      objectReference: {fileID: 0}
+    - target: {fileID: 5478332172321550133, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

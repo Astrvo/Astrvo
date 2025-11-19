@@ -70,6 +70,12 @@ namespace Astrvo.Space
 
         private void OnLoadAvatarButton()
         {
+            if (thirdPersonLoader == null)
+            {
+                Debug.LogError("[PersonalAvatarLoader] ThirdPersonLoader is null, cannot load avatar");
+                return;
+            }
+            
             thirdPersonLoader.OnLoadComplete += OnLoadComplete;
             defaultButtonText = openPersonalAvatarPanelButtonText.text;
             SetActiveLoading(true, "Loading...");
@@ -94,7 +100,10 @@ namespace Astrvo.Space
 
         private void OnLoadComplete()
         {
-            thirdPersonLoader.OnLoadComplete -= OnLoadComplete;
+            if (thirdPersonLoader != null)
+            {
+                thirdPersonLoader.OnLoadComplete -= OnLoadComplete;
+            }
             SetActiveLoading(false, defaultButtonText);
         }
 

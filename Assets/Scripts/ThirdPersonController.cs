@@ -41,12 +41,42 @@ namespace Astrvo.Space
                 Init();
             }
             
+            if (target == null)
+            {
+                Debug.LogError("[ThirdPersonController] Setup called with null target!");
+                return;
+            }
+            
             avatar = target;
+            
+            // 确保avatar是激活的
+            if (!avatar.activeSelf)
+            {
+                Debug.LogWarning("[ThirdPersonController] Avatar is inactive, activating it...");
+                avatar.SetActive(true);
+            }
+            
             thirdPersonMovement.Setup(avatar);
+            
             animator = avatar.GetComponent<Animator>();
-            animator.runtimeAnimatorController = runtimeAnimatorController;
+            if (animator == null)
+            {
+                Debug.LogError("[ThirdPersonController] Animator component not found on avatar!");
+                return;
+            }
+            
+            if (runtimeAnimatorController != null)
+            {
+                animator.runtimeAnimatorController = runtimeAnimatorController;
+            }
+            else
+            {
+                Debug.LogWarning("[ThirdPersonController] RuntimeAnimatorController is null, avatar may not animate properly");
+            }
+            
             animator.applyRootMotion = false;
             
+            Debug.Log($"[ThirdPersonController] Setup complete. Avatar: {avatar.name}, Animator: {(animator != null ? "Found" : "Missing")}, Controller: {(runtimeAnimatorController != null ? runtimeAnimatorController.name : "None")}");
         }
         
         private void Update()
