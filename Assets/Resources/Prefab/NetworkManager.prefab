@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6339561086241511946}
   - component: {fileID: 7446381543621365571}
   - component: {fileID: 7438317422857588826}
+  - component: {fileID: 3942027234971937945}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -55,7 +56,7 @@ MonoBehaviour:
   _objectPool: {fileID: 0}
   _persistence: 0
   _logging: {fileID: 0}
-  _spawnablePrefabs: {fileID: 11400000, guid: d295073f9d806fc4a858e50c9c467c4b, type: 2}
+  _spawnablePrefabs: {fileID: 11400000, guid: 0a248cff427c166488d4e71805489d5a, type: 2}
 --- !u!114 &3768624641814068962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -63,7 +64,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6702225627773206156}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d331f979d46e8e4a9fc90070c596d44, type: 3}
   m_Name: 
@@ -129,12 +130,25 @@ MultiplayerRolesData:
   m_GameObject: {fileID: 6702225627773206156}
   m_GameObjectRolesMask: 3
   m_ComponentsRolesMasks:
-  - m_Object: {fileID: 7446381543621365571}
-    m_RolesMask: 1
   - m_Object: {fileID: 6339561086241511946}
     m_RolesMask: 1
   - m_Object: {fileID: 7215016875899516169}
     m_RolesMask: 1
+--- !u!114 &3942027234971937945
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6702225627773206156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 211a9f6ec51ddc14f908f5acc0cd0423, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Spawning.PlayerSpawner
+  _playerPrefab: {fileID: 735510397914732398, guid: 789ebfeb64995434baf76a7edc703067, type: 3}
+  _addToDefaultScene: 1
+  Spawns: []
 --- !u!1001 &7958016024120674267
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -241,7 +255,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4393252310969058994, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
       propertyPath: m_Enabled
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4393252310969058994, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
       propertyPath: _autoStartType
@@ -258,8 +272,34 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4393252310969058995, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2159594130649731857}
   m_SourcePrefab: {fileID: 100100000, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+--- !u!1 &5946856911053635944 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4393252310969058995, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}
+  m_PrefabInstance: {fileID: 7958016024120674267}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2159594130649731857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5946856911053635944}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68a197fb97d20234fb63da9a11d0e1c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishNet.Example.NetworkHudCanvases
+  _autoStartType: 3
+  _stoppedColor: {r: 0, g: 0, b: 0, a: 0}
+  _changingColor: {r: 0, g: 0, b: 0, a: 0}
+  _startedColor: {r: 0, g: 0, b: 0, a: 0}
+  _serverIndicator: {fileID: 0}
+  _clientIndicator: {fileID: 0}
 --- !u!224 &5946856911053635957 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4393252310969058990, guid: 0570b6f7f713dc44a90463654bbcd8d0, type: 3}

@@ -322,14 +322,14 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
         }
         
         // 非Owner客户端或CharacterController不可用时，使用物理检测
-        // 使用与PlayerMovement和GroundCheck相同的地面检测方式
+        // 使用与GroundCheck相同的检测方式：Physics.CheckSphere
         Vector3 position = transform.position;
         Vector3 spherePosition = new Vector3(position.x, position.y + groundedOffset, position.z);
         
-        // 使用OverlapSphere然后过滤掉玩家对象，避免多个玩家挤在一起时误判
+        // 使用OverlapSphere来检查具体是什么Collider，然后过滤掉所有玩家对象
         Collider[] colliders = Physics.OverlapSphere(spherePosition, groundRadius, groundMask, QueryTriggerInteraction.Ignore);
         
-        // 过滤掉玩家对象（通过Tag或Layer判断）
+        // 过滤掉所有玩家对象（包括其他玩家的CharacterController）
         foreach (Collider col in colliders)
         {
             // 跳过玩家对象（通过Tag判断）
@@ -338,10 +338,34 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
                 continue;
             }
             
+            // 跳过玩家对象的CharacterController（通过检查父对象是否有NetworkObject或PlayerMovement）
+            Transform parent = col.transform;
+            bool isPlayerCollider = false;
+            
+            // 检查当前对象及其父对象是否是玩家
+            while (parent != null)
+            {
+                // 检查是否有NetworkObject组件（玩家对象通常有）
+                if (parent.GetComponent<NetworkObject>() != null || 
+                    parent.GetComponent<PlayerMovement>() != null ||
+                    parent.CompareTag("Player"))
+                {
+                    isPlayerCollider = true;
+                    break;
+                }
+                parent = parent.parent;
+            }
+            
+            if (isPlayerCollider)
+            {
+                continue;
+            }
+            
             // 如果检测到非玩家的Collider，说明在地面上
             return true;
         }
         
+        // 如果没有找到非玩家的Collider，返回false
         return false;
     }
     

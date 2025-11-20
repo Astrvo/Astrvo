@@ -1306,11 +1306,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!1 &366722397 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-  m_PrefabInstance: {fileID: 451277390}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &406304090
 GameObject:
   m_ObjectHideFlags: 0
@@ -1707,37 +1702,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3768624641814068962, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
       propertyPath: m_Name
       value: NetworkManager
       objectReference: {fileID: 0}
-    - target: {fileID: 7215016875899516169, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: _spawnablePrefabs
-      value: 
-      objectReference: {fileID: 11400000, guid: 0a248cff427c166488d4e71805489d5a, type: 2}
-    - target: {fileID: 7438317422857588826, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: m_ComponentsRolesMasks.Array.size
-      value: 2
+    - target: {fileID: 7446381543621365571, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      propertyPath: _port
+      value: 12869
       objectReference: {fileID: 0}
-    - target: {fileID: 7438317422857588826, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: m_ComponentsRolesMasks.Array.data[0].m_Object
-      value: 
-      objectReference: {fileID: 1185987130}
-    - target: {fileID: 7438317422857588826, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      propertyPath: m_ComponentsRolesMasks.Array.data[1].m_Object
-      value: 
-      objectReference: {fileID: 1185987133}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1185987139}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
 --- !u!1 &473533534
 GameObject:
@@ -5007,43 +4983,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1173381871}
   m_CullTransparentMesh: 1
---- !u!114 &1185987130 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6339561086241511946, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-  m_PrefabInstance: {fileID: 451277390}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 366722397}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 68828c85278210948b9d50a8db3aab74, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Managing.Server.ServerManager
---- !u!114 &1185987133 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7215016875899516169, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-  m_PrefabInstance: {fileID: 451277390}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 366722397}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d2c95dfde7d73b54dbbdc23155d35d36, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &1185987139
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 366722397}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 211a9f6ec51ddc14f908f5acc0cd0423, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Spawning.PlayerSpawner
-  _playerPrefab: {fileID: 735510397914732398, guid: 789ebfeb64995434baf76a7edc703067, type: 3}
-  _addToDefaultScene: 1
-  Spawns: []
 --- !u!1 &1267556126
 GameObject:
   m_ObjectHideFlags: 0
