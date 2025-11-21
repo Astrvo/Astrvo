@@ -609,7 +609,9 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  playerCamera: {fileID: 8998968987339310229}
   cameraTarget: {fileID: 546746851988828432}
+  variableJoystick: {fileID: 0}
 --- !u!114 &-3922897193629271691
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -724,6 +726,7 @@ MonoBehaviour:
   - {fileID: -3691157499355327816}
   - {fileID: -3878073652850662119}
   - {fileID: 6578854677465248978}
+  - {fileID: 4600696154320314722}
   - {fileID: 1992370759972450403}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
@@ -790,9 +793,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c59985324289ce24691f4e65b7aaeb40, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerNameTag
-  _componentIndexCache: 255
+  _componentIndexCache: 6
   _addedNetworkObject: {fileID: 735510397914732398}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 735510397914732398}
   nameText: {fileID: 8926367458464827182}
   nameCanvas: {fileID: 453031752545060927}
   nameTagHeight: 2.5
@@ -1035,7 +1038,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51f559f1c5f5f4f48ad8a3fa2cb983b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkCameraController
-  _componentIndexCache: 6
+  _componentIndexCache: 7
   _addedNetworkObject: {fileID: 735510397914732398}
   _networkObjectCache: {fileID: 735510397914732398}
   target: {fileID: 546746851988828432}

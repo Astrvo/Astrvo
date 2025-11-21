@@ -25,6 +25,7 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField] private LayerMask groundMask = -1; // 地面层遮罩
     
     [Header("组件引用")]
+    public Camera playerCamera;
     [SerializeField] private Transform cameraTarget; // 相机目标（用于计算移动方向）
     [SerializeField] private VariableJoystick variableJoystick; // 虚拟摇杆（移动端输入）
     
@@ -166,79 +167,35 @@ public class PlayerMovement : NetworkBehaviour
         // 处理重力
         HandleGravity();
         
-        // 处理输入：如果只有侧向输入（A/D），自动添加前向分量，实现类似A+W的效果
-        Vector2 processedInput = combinedInput;
-        if (Mathf.Abs(processedInput.y) < 0.1f && Mathf.Abs(processedInput.x) > 0.1f)
-        {
-            // 只有侧向输入时，添加前向分量（0.707约为45度角，使移动更自然）
-            processedInput = new Vector2(processedInput.x, 0.707f);
-        }
+        // 归一化输入方向
+        Vector3 inputDirection = new Vector3(combinedInput.x, 0.0f, combinedInput.y).normalized;
         
-        // 计算移动方向（基于相机方向）- 直接使用相机相对方向，避免转圈
-        Vector3 moveDirection = Vector3.zero;
-        if (cameraTarget != null && processedInput != Vector2.zero)
+        // 如果有移动输入，旋转角色
+        if (combinedInput != Vector2.zero)
         {
-            // 获取相机的水平方向（移除Y轴分量）
-            Vector3 cameraForward = cameraTarget.forward;
-            Vector3 cameraRight = cameraTarget.right;
-            cameraForward.y = 0f;
-            cameraRight.y = 0f;
-            cameraForward.Normalize();
-            cameraRight.Normalize();
+            // 计算目标旋转角度：输入方向角度 + 相机Y轴角度
+            // 注意：这里直接使用cameraTarget.eulerAngles.y，因为我们已经确保了相机与玩家分离
+            float cameraYaw = cameraTarget != null ? cameraTarget.eulerAngles.y : transform.eulerAngles.y;
             
-            // 计算移动方向：直接使用相机相对方向，立即移动
-            moveDirection = cameraRight * processedInput.x + cameraForward * processedInput.y;
-        }
-        else if (processedInput != Vector2.zero)
-        {
-            // 如果没有相机，使用世界坐标
-            moveDirection = new Vector3(processedInput.x, 0f, processedInput.y);
-        }
-        
-        // 如果有移动输入，旋转角色朝向移动方向
-        // 使用输入方向 + 相机角度来计算目标旋转，确保角度稳定
-        if (processedInput != Vector2.zero && cameraTarget != null)
-        {
-            // 归一化输入方向（世界坐标的x, z）
-            Vector3 inputDirection = new Vector3(processedInput.x, 0.0f, processedInput.y).normalized;
             
-            // 计算目标旋转角度：输入方向的角度 + 相机的Y轴角度
-            // 这样可以让角色朝向相对于相机的输入方向，且角度更稳定
-            float targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
-                                cameraTarget.eulerAngles.y;
-            
-            // 平滑旋转到目标角度
-            float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref rotationVelocity,
-                rotationSmoothTime);
+            targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
+                                  playerCamera.transform.eulerAngles.y;
+            // 平滑旋转
+            float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetRotation, ref rotationVelocity, rotationSmoothTime);
             
             // 旋转角色朝向输入方向（相对于相机）
             transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
         }
-        else if (processedInput != Vector2.zero)
-        {
-            // 如果没有相机，使用世界坐标
-            Vector3 inputDirection = new Vector3(processedInput.x, 0.0f, processedInput.y).normalized;
-            float targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
-            float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref rotationVelocity,
-                rotationSmoothTime);
-            transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
-        }
         
-        // 移动角色：直接沿着计算出的移动方向移动（不依赖旋转）
-        // 这样可以避免转圈问题，角色会立即移动，同时平滑旋转
-        if (moveDirection.magnitude > 0.1f)
-        {
-            controller.Move(moveDirection.normalized * (targetSpeed * Time.deltaTime) +
-                           new Vector3(0.0f, verticalVelocity, 0.0f) * Time.deltaTime);
-        }
-        else
-        {
-            // 没有移动输入时，只应用重力
-            controller.Move(new Vector3(0.0f, verticalVelocity, 0.0f) * Time.deltaTime);
-        }
+        // 计算移动方向：基于目标旋转角度的前方
+        Vector3 targetDirection = Quaternion.Euler(0.0f, targetRotation, 0.0f) * Vector3.forward;
+        
+        // 移动角色
+        controller.Move(targetDirection.normalized * (targetSpeed * Time.deltaTime) +
+                       new Vector3(0.0f, verticalVelocity, 0.0f) * Time.deltaTime);
         
         // 更新移动速度（供动画使用）
-        float moveMagnitude = processedInput.magnitude;
+        float moveMagnitude = combinedInput.magnitude;
         CurrentMoveSpeed = isRunning ? runSpeed * moveMagnitude : walkSpeed * moveMagnitude;
     }
     
