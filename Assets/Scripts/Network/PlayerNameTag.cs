@@ -29,6 +29,19 @@ public class PlayerNameTag : NetworkBehaviour
     
     private Camera _mainCamera;
     private Transform _nameTagTransform;
+    private bool _hasTriedToSetName = false; // 标记是否已经尝试过设置用户名
+    
+    public override void OnStartNetwork()
+    {
+        base.OnStartNetwork();
+        
+        // 订阅用户名变化事件（必须在设置值之前订阅）
+        _playerName.OnChange += OnPlayerNameChanged;
+        
+        // 注意：在 OnStartNetwork 中不能使用 IsOwner，只能使用 base.Owner.IsLocalClient
+        bool isLocalClient = base.Owner != null && base.Owner.IsLocalClient;
+        LogDebug($"OnStartNetwork called (IsLocalClient: {isLocalClient}, IsServer: {IsServer})");
+    }
     
     public override void OnStartClient()
     {
@@ -37,13 +50,11 @@ public class PlayerNameTag : NetworkBehaviour
         // 初始化名称标签（所有客户端都需要）
         InitializeNameTag();
         
-        // 订阅用户名变化事件（必须在设置值之前订阅）
-        _playerName.OnChange += OnPlayerNameChanged;
-        
         // 如果是Owner，设置用户名
         if (IsOwner)
         {
-            SetPlayerName();
+            // 延迟一小段时间，确保网络对象完全初始化
+            StartCoroutine(DelayedSetPlayerName());
         }
         else
         {
@@ -67,25 +78,42 @@ public class PlayerNameTag : NetworkBehaviour
     }
     
     /// <summary>
+    /// 延迟设置玩家名称（确保网络对象完全初始化）
+    /// </summary>
+    private IEnumerator DelayedSetPlayerName()
+    {
+        // 等待一帧，确保网络对象完全初始化
+        yield return null;
+        
+        // 再等待一小段时间，确保 PlayFab 可能已经登录
+        yield return new WaitForSeconds(0.1f);
+        
+        SetPlayerName();
+    }
+    
+    /// <summary>
     /// 延迟检查用户名（用于非Owner客户端）
     /// </summary>
     private IEnumerator CheckNameAfterDelay()
     {
-        yield return new WaitForSeconds(0.5f);
+        // 多次检查，给更多时间让SyncVar同步
+        for (int i = 0; i < 10; i++)
+        {
+            yield return new WaitForSeconds(0.2f);
+            
+            // 检查SyncVar是否已经同步
+            if (!string.IsNullOrEmpty(_playerName.Value))
+            {
+                UpdateNameDisplay(_playerName.Value);
+                LogDebug($"Non-owner: Name synced after delay: {_playerName.Value}");
+                yield break; // 找到了，退出循环
+            }
+        }
         
-        // 再次检查SyncVar是否已经同步
-        if (!string.IsNullOrEmpty(_playerName.Value))
-        {
-            UpdateNameDisplay(_playerName.Value);
-            LogDebug($"Non-owner: Name synced after delay: {_playerName.Value}");
-        }
-        else
-        {
-            // 如果还是没有，使用默认名称
-            string defaultName = $"Player_{NetworkObject.OwnerId}";
-            UpdateNameDisplay(defaultName);
-            LogDebug($"Non-owner: Using default name: {defaultName}");
-        }
+        // 如果还是没有，使用默认名称
+        string defaultName = $"Player_{NetworkObject.OwnerId}";
+        UpdateNameDisplay(defaultName);
+        LogDebug($"Non-owner: Using default name after timeout: {defaultName}");
     }
     
     public override void OnStopClient()
@@ -94,6 +122,18 @@ public class PlayerNameTag : NetworkBehaviour
         
         // 取消订阅事件（SyncVar永远不会为null，所以直接取消订阅）
         _playerName.OnChange -= OnPlayerNameChanged;
+        
+        LogDebug("OnStopClient called, unsubscribed from name change event");
+    }
+    
+    public override void OnStopNetwork()
+    {
+        base.OnStopNetwork();
+        
+        // 取消订阅事件
+        _playerName.OnChange -= OnPlayerNameChanged;
+        
+        LogDebug("OnStopNetwork called, unsubscribed from name change event");
     }
     
     /// <summary>
@@ -245,32 +285,80 @@ public class PlayerNameTag : NetworkBehaviour
     /// </summary>
     private void SetPlayerName()
     {
+        if (_hasTriedToSetName)
+        {
+            LogDebug("Already tried to set player name, skipping...");
+            return;
+        }
+        
+        _hasTriedToSetName = true;
+        
         string username = GetUsername();
+        LogDebug($"GetUsername() returned: {(string.IsNullOrEmpty(username) ? "null/empty" : username)}");
+        
         if (!string.IsNullOrEmpty(username))
         {
             // 立即更新本地显示
             UpdateNameDisplay(username);
             
-            // 通过ServerRpc发送到服务器
-            ServerSetPlayerName(username);
-            LogDebug($"Player name set locally and sent to server: {username} (IsOwner: {IsOwner})");
+            // 尝试多种方法同步用户名：
+            // 1. 先尝试直接设置 SyncVar（如果服务器有网络对象，可能会自动同步）
+            TrySetSyncVarDirectly(username);
+            
+            // 2. 使用 ObserversRpc 广播（如果服务器端有组件，会转发给其他客户端）
+            BroadcastPlayerName(username);
+            
+            LogDebug($"Player name set locally, attempted sync via multiple methods: {username} (IsOwner: {IsOwner})");
         }
         else
         {
             // 如果用户名还没准备好，等待一下
+            LogDebug("Username not ready, starting WaitForUsernameAndSet coroutine...");
             StartCoroutine(WaitForUsernameAndSet());
         }
     }
     
     /// <summary>
-    /// 服务器端设置玩家名称（通过ServerRpc调用）
+    /// 广播玩家名称给所有观察者客户端
+    /// 注意：如果服务器端没有这个组件，ObserversRpc 可能无法工作
+    /// 作为备用方案，我们尝试直接设置 SyncVar（如果网络对象存在，可能会自动同步）
     /// </summary>
-    [ServerRpc]
-    public void ServerSetPlayerName(string name)
+    [ObserversRpc(ExcludeOwner = false, ExcludeServer = true)]
+    private void BroadcastPlayerName(string name)
     {
-        // 服务器端设置SyncVar，会自动同步到所有客户端
-        _playerName.Value = name;
-        LogDebug($"Server received and set player name: {name}");
+        if (string.IsNullOrEmpty(name))
+        {
+            LogDebug("BroadcastPlayerName received empty name, ignoring...");
+            return;
+        }
+        
+        // 更新显示
+        UpdateNameDisplay(name);
+        LogDebug($"Received broadcasted player name via RPC: {name} (IsOwner: {IsOwner})");
+    }
+    
+    /// <summary>
+    /// 尝试直接设置 SyncVar（作为备用方案，如果服务器端没有代码）
+    /// 注意：在 FishNet 中，客户端设置 SyncVar 通常不会同步，但我们可以尝试
+    /// </summary>
+    private void TrySetSyncVarDirectly(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return;
+        }
+        
+        try
+        {
+            // 尝试直接设置 SyncVar
+            // 如果服务器端有网络对象，这可能会自动同步
+            _playerName.Value = name;
+            LogDebug($"Attempted to set SyncVar directly: {name} (IsOwner: {IsOwner}, IsServer: {IsServer})");
+        }
+        catch (System.Exception e)
+        {
+            LogDebug($"Failed to set SyncVar directly: {e.Message}");
+        }
     }
     
     /// <summary>
@@ -278,23 +366,45 @@ public class PlayerNameTag : NetworkBehaviour
     /// </summary>
     private IEnumerator WaitForUsernameAndSet()
     {
-        float timeout = 10f;
+        float timeout = 15f; // 增加超时时间
         float elapsed = 0f;
+        float checkInterval = 0.2f;
         
-        while (string.IsNullOrEmpty(GetUsername()) && elapsed < timeout)
+        LogDebug($"Waiting for username to be ready (timeout: {timeout}s)...");
+        
+        while (elapsed < timeout)
         {
-            yield return new WaitForSeconds(0.1f);
-            elapsed += 0.1f;
+            yield return new WaitForSeconds(checkInterval);
+            elapsed += checkInterval;
+            
+            string username = GetUsername();
+            if (!string.IsNullOrEmpty(username))
+            {
+                // 立即更新本地显示
+                UpdateNameDisplay(username);
+                
+                // 尝试多种方法同步
+                TrySetSyncVarDirectly(username);
+                BroadcastPlayerName(username);
+                LogDebug($"Player name set locally and broadcasted after wait: {username} (elapsed: {elapsed:F1}s)");
+                yield break; // 成功设置，退出协程
+            }
+            
+            // 每2秒记录一次日志
+            if (Mathf.FloorToInt(elapsed) % 2 == 0 && Mathf.Approximately(elapsed % 1f, 0f))
+            {
+                LogDebug($"Still waiting for username... (elapsed: {elapsed:F1}s)");
+            }
         }
         
-        string username = GetUsername();
-        if (!string.IsNullOrEmpty(username))
+        // 超时后，尝试最后一次获取
+        string finalUsername = GetUsername();
+        if (!string.IsNullOrEmpty(finalUsername))
         {
-            // 立即更新本地显示
-            UpdateNameDisplay(username);
-            
-            ServerSetPlayerName(username);
-            LogDebug($"Player name set locally and sent to server after wait: {username}");
+            UpdateNameDisplay(finalUsername);
+            TrySetSyncVarDirectly(finalUsername);
+            BroadcastPlayerName(finalUsername);
+            LogDebug($"Player name set after timeout: {finalUsername}");
         }
         else
         {
@@ -304,8 +414,9 @@ public class PlayerNameTag : NetworkBehaviour
             // 立即更新本地显示
             UpdateNameDisplay(defaultName);
             
-            ServerSetPlayerName(defaultName);
-            LogDebug($"Using default name: {defaultName}");
+            TrySetSyncVarDirectly(defaultName);
+            BroadcastPlayerName(defaultName);
+            LogDebug($"Using default name after timeout: {defaultName}");
         }
     }
     
@@ -315,25 +426,48 @@ public class PlayerNameTag : NetworkBehaviour
     private string GetUsername()
     {
         // 尝试从PlayFabManager获取
-        if (PlayFabSystem.PlayFabManager.Instance != null && PlayFabSystem.PlayFabManager.Instance.IsLoggedIn)
+        if (PlayFabSystem.PlayFabManager.Instance != null)
         {
+            bool isLoggedIn = PlayFabSystem.PlayFabManager.Instance.IsLoggedIn;
             string username = PlayFabSystem.PlayFabManager.Instance.CurrentUsername;
-            if (!string.IsNullOrEmpty(username))
+            
+            LogDebug($"PlayFabManager check - IsLoggedIn: {isLoggedIn}, Username: {(string.IsNullOrEmpty(username) ? "null/empty" : username)}");
+            
+            if (isLoggedIn && !string.IsNullOrEmpty(username))
             {
                 return username;
             }
+        }
+        else
+        {
+            LogDebug("PlayFabManager.Instance is null");
         }
         
         // 尝试从UsernameManager获取
         if (PlayFabSystem.UsernameManager.Instance != null)
         {
             string username = PlayFabSystem.UsernameManager.Instance.GetCurrentUsername();
+            LogDebug($"UsernameManager check - Username: {(string.IsNullOrEmpty(username) ? "null/empty" : username)}");
+            
             if (!string.IsNullOrEmpty(username))
             {
                 return username;
             }
         }
+        else
+        {
+            LogDebug("UsernameManager.Instance is null");
+        }
         
+        // 尝试从PlayerPrefs获取（作为后备方案）
+        string savedUsername = PlayerPrefs.GetString("SavedUsername", "");
+        if (!string.IsNullOrEmpty(savedUsername))
+        {
+            LogDebug($"Found saved username in PlayerPrefs: {savedUsername}");
+            return savedUsername;
+        }
+        
+        LogDebug("No username found from any source");
         return null;
     }
     
