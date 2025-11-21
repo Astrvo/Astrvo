@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 3768624641814068962}
   - component: {fileID: 6339561086241511946}
   - component: {fileID: 7446381543621365571}
-  - component: {fileID: 7438317422857588826}
   - component: {fileID: 3942027234971937945}
+  - component: {fileID: 1387613003104751719}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -80,7 +80,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6702225627773206156}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68828c85278210948b9d50a8db3aab74, type: 3}
   m_Name: 
@@ -118,22 +118,9 @@ MonoBehaviour:
     CertificatePassword: 
     SslProtocol: 0
   _mtu: 1023
-  _port: 10476
+  _port: 443
   _maximumClients: 2000
-  _clientAddress: connect.computeflow.cloud
---- !u!1652712579 &7438317422857588826
-MultiplayerRolesData:
-  m_ObjectHideFlags: 2
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6702225627773206156}
-  m_GameObjectRolesMask: 3
-  m_ComponentsRolesMasks:
-  - m_Object: {fileID: 6339561086241511946}
-    m_RolesMask: 1
-  - m_Object: {fileID: 7215016875899516169}
-    m_RolesMask: 1
+  _clientAddress: 85.9.199.89
 --- !u!114 &3942027234971937945
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -149,6 +136,25 @@ MonoBehaviour:
   _playerPrefab: {fileID: 735510397914732398, guid: 789ebfeb64995434baf76a7edc703067, type: 3}
   _addToDefaultScene: 1
   Spawns: []
+--- !u!114 &1387613003104751719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6702225627773206156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fdaae44044276a49a52229c1597e33b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Managing.Timing.TimeManager
+  _updateOrder: 0
+  _timingType: 0
+  _allowTickDropping: 1
+  _maximumFrameTicks: 3
+  _tickRate: 20
+  _pingInterval: 1
+  _physicsMode: 0
 --- !u!1001 &7958016024120674267
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -61,6 +61,10 @@ public class NetworkCameraController : NetworkBehaviour
     private bool isFirstPerson = false;
     private bool isFollowing = false;
     private bool isRotating = false; // 是否正在旋转（鼠标右键按住）
+    
+    // 性能优化: 缓存上一帧的目标位置，用于检测移动
+    private Vector3 lastTargetPosition;
+    private bool hasInitializedPosition = false;
 
     public override void OnStartClient()
     {
@@ -72,6 +76,7 @@ public class NetworkCameraController : NetworkBehaviour
         if (IsOwner)
         {
             this.enabled = true;
+            gameObject.SetActive(true); // 确保GameObject激活
 
             // 启用相机并设置为MainCamera（如果场景中没有其他主相机）
             if (cam != null)
@@ -101,28 +106,39 @@ public class NetworkCameraController : NetworkBehaviour
                 if (lookAction != null)
                 {
                     lookAction.Enable();
+                    #if UNITY_EDITOR
                     Debug.Log("[NetworkCameraController] Look action enabled");
+                    #endif
                 }
                 else
                 {
+                    #if UNITY_EDITOR
                     Debug.LogWarning("[NetworkCameraController] Look action not found!");
+                    #endif
                 }
                 
                 if (scrollAction != null)
                 {
                     scrollAction.Enable();
+                    #if UNITY_EDITOR
                     Debug.Log("[NetworkCameraController] Scroll action enabled");
+                    #endif
                 }
                 else
                 {
+                    #if UNITY_EDITOR
                     Debug.LogWarning("[NetworkCameraController] Scroll action not found!");
+                    #endif
                 }
             }
             else
             {
+                #if UNITY_EDITOR
                 Debug.LogWarning("[NetworkCameraController] PlayerInput component not found!");
+                #endif
             }
             
+            // 性能优化: 移除FindObjectsOfType，改用更高效的方式获取target
             // 如果没有目标，尝试从父对象获取（相机通常是玩家对象的子对象）
             if (target == null)
             {
@@ -135,19 +151,7 @@ public class NetworkCameraController : NetworkBehaviour
                     {
                         target = networkObject.transform;
                     }
-                    else
-                    {
-                        // 尝试找到本地玩家的NetworkObject
-                        NetworkObject[] networkObjects = FindObjectsOfType<NetworkObject>();
-                        foreach (NetworkObject no in networkObjects)
-                        {
-                            if (no.IsOwner)
-                            {
-                                target = no.transform;
-                                break;
-                            }
-                        }
-                    }
+                    // 移除FindObjectsOfType调用，如果找不到就保持null，后续可以通过SetTarget设置
                 }
             }
             
@@ -178,17 +182,22 @@ public class NetworkCameraController : NetworkBehaviour
                 StartFollow();
             }
             
+            #if UNITY_EDITOR
             Debug.Log($"[NetworkCameraController] Camera initialized for owner. Target: {(target != null ? target.name : "null")}");
+            #endif
         }
         else
         {
-            // 非Owner禁用此组件和相机
+            // 非Owner完全禁用此组件、相机和GameObject（性能优化）
             this.enabled = false;
 
             if (cam != null)
             {
                 cam.enabled = false;
             }
+            
+            // 完全禁用GameObject以节省性能
+            gameObject.SetActive(false);
         }
     }
     
@@ -206,19 +215,27 @@ public class NetworkCameraController : NetworkBehaviour
 
     void LateUpdate()
     {
-        if (target == null)
+        // 性能优化: 确保只有Owner才执行
+        if (!IsOwner || target == null)
             return;
+        
+        // 性能优化: 只在有输入时才读取Input Actions
+        bool hasLookInput = false;
+        bool hasScrollInput = false;
+        bool needsUpdate = false;
         
         // 直接从Input Actions读取输入（如果可用）
         if (lookAction != null)
         {
             lookInput = lookAction.ReadValue<Vector2>();
+            hasLookInput = lookInput.magnitude > 0.01f;
         }
         
         if (scrollAction != null)
         {
             Vector2 scrollValue = scrollAction.ReadValue<Vector2>();
             scrollInput = scrollValue.y;
+            hasScrollInput = Mathf.Abs(scrollInput) > 0.01f;
         }
         
         // 检查是否正在旋转（鼠标右键按住或触摸）- 参考CameraOrbit
@@ -226,32 +243,48 @@ public class NetworkCameraController : NetworkBehaviour
         
         // 处理相机旋转（类似CameraOrbit）
         // 只在鼠标右键按住时旋转
-        if (isRotating)
+        if (isRotating && hasLookInput)
         {
-            // 使用Look action，但只在右键按住时处理
-            // 如果lookInput有值，说明鼠标在移动
-            if (lookInput.magnitude > 0.01f)
-            {
-                HandleCameraRotation();
-            }
+            HandleCameraRotation();
+            needsUpdate = true;
         }
-        else
+        else if (!isRotating)
         {
             // 不旋转时，清空lookInput（避免在非右键时累积输入）
             lookInput = Vector2.zero;
         }
         
         // 处理相机缩放
-        if (Mathf.Abs(scrollInput) > 0.01f)
+        if (hasScrollInput)
         {
             HandleCameraZoom();
+            needsUpdate = true;
         }
         
-        // 更新视角模式
+        // 性能优化: 只在距离变化时才更新视角模式
+        float previousDistance = currentDistance;
         UpdateViewMode();
         
         // 处理相机跟随（类似CameraFollow）
-        if (isFollowing)
+        // 性能优化: 检查目标是否移动
+        bool targetMoved = false;
+        if (!hasInitializedPosition)
+        {
+            lastTargetPosition = target.position;
+            hasInitializedPosition = true;
+            targetMoved = true; // 首次初始化需要更新
+        }
+        else
+        {
+            targetMoved = Vector3.Distance(lastTargetPosition, target.position) > 0.001f;
+            if (targetMoved)
+            {
+                lastTargetPosition = target.position;
+            }
+        }
+        
+        // 只在有输入、距离变化或目标移动时才更新相机
+        if (isFollowing && (needsUpdate || Mathf.Abs(currentDistance - previousDistance) > 0.001f || targetMoved))
         {
             UpdateCameraFollow();
         }
@@ -303,12 +336,16 @@ public class NetworkCameraController : NetworkBehaviour
     /// </summary>
     private void UpdateViewMode()
     {
+        // 性能优化: 只在距离变化超过阈值时才检查视角模式
         bool shouldBeFirstPerson = currentDistance <= firstPersonThreshold;
         
         if (shouldBeFirstPerson != isFirstPerson)
         {
             isFirstPerson = shouldBeFirstPerson;
+            // 性能优化: 移除Debug.Log（在发布版本中会产生开销）
+            #if UNITY_EDITOR
             Debug.Log($"[NetworkCameraController] View mode changed to: {(isFirstPerson ? "First Person" : "Third Person")}");
+            #endif
         }
     }
     

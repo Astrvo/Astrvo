@@ -37,6 +37,11 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
     private Vector3 lastPosition;
     private float calculatedMoveSpeed = 0f;
     private float moveSpeedSmoothVelocity = 0f;
+    
+    // 性能优化: 减少地面检测频率
+    private float _groundCheckInterval = 0.15f; // 每0.15秒检测一次地面
+    private float _lastGroundCheckTime = 0f;
+    private bool _cachedIsGrounded = false;
 
     public override void OnStartClient()
     {
@@ -277,8 +282,16 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
             animator.SetFloat(MoveSpeedHash, targetMoveSpeed);
         }
         
+        // 性能优化: 减少物理检测频率
+        bool needGroundCheck = Time.time - _lastGroundCheckTime >= _groundCheckInterval;
+        if (needGroundCheck)
+        {
+            _lastGroundCheckTime = Time.time;
+            _cachedIsGrounded = IsGrounded();
+        }
+        
         // 处理地面检测和自由落体
-        bool isGrounded = IsGrounded();
+        bool isGrounded = _cachedIsGrounded;
         
         // 优化：只有状态变化才设置
         if (animator.GetBool(IsGroundedHash) != isGrounded)
@@ -319,54 +332,52 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
     /// </summary>
     private bool IsGrounded()
     {
-        // 对于Owner客户端，优先使用CharacterController.isGrounded（更准确）
+        // 对于Owner客户端，优先使用CharacterController.isGrounded（更准确且性能更好）
         if (IsOwner && characterController != null && characterController.enabled)
         {
             return characterController.isGrounded;
         }
         
+        // 性能优化: 使用CheckSphere代替OverlapSphere（更高效，不需要分配数组）
         // 非Owner客户端或CharacterController不可用时，使用物理检测
-        // 使用与GroundCheck相同的检测方式：Physics.CheckSphere
         Vector3 position = transform.position;
         Vector3 spherePosition = new Vector3(position.x, position.y + groundedOffset, position.z);
         
-        // 使用OverlapSphere来检查具体是什么Collider，然后过滤掉所有玩家对象
-        Collider[] colliders = Physics.OverlapSphere(spherePosition, groundRadius, groundMask, QueryTriggerInteraction.Ignore);
+        // 使用CheckSphere进行快速检测（比OverlapSphere快，不需要分配内存）
+        // 注意: CheckSphere不能过滤玩家对象，但性能更好
+        // 如果多个玩家挤在一起可能会有误判，但通常影响不大
+        bool hitGround = Physics.CheckSphere(spherePosition, groundRadius, groundMask, QueryTriggerInteraction.Ignore);
         
-        // 过滤掉所有玩家对象（包括其他玩家的CharacterController）
-        foreach (Collider col in colliders)
+        if (hitGround)
         {
-            // 跳过玩家对象（通过Tag判断）
-            if (col.CompareTag("Player"))
-            {
-                continue;
-            }
+            // 如果检测到碰撞，进一步检查是否是玩家对象（使用Raycast进行更精确的检测）
+            // 性能优化: 只在检测到碰撞时才进行详细检查
+            Collider[] colliders = Physics.OverlapSphere(spherePosition, groundRadius, groundMask, QueryTriggerInteraction.Ignore);
             
-            // 跳过玩家对象的CharacterController（通过检查父对象是否有NetworkObject或PlayerMovement）
-            Transform parent = col.transform;
-            bool isPlayerCollider = false;
-            
-            // 检查当前对象及其父对象是否是玩家
-            while (parent != null)
+            foreach (Collider col in colliders)
             {
-                // 检查是否有NetworkObject组件（玩家对象通常有）
-                if (parent.GetComponent<NetworkObject>() != null || 
-                    parent.GetComponent<PlayerMovement>() != null ||
-                    parent.CompareTag("Player"))
+                // 跳过玩家对象（通过Tag判断）
+                if (col.CompareTag("Player"))
                 {
-                    isPlayerCollider = true;
-                    break;
+                    continue;
                 }
-                parent = parent.parent;
+                
+                // 快速检查: 只检查直接父对象，不遍历整个层级（性能优化）
+                Transform parent = col.transform.parent;
+                if (parent != null)
+                {
+                    // 检查直接父对象是否是玩家
+                    if (parent.GetComponent<NetworkObject>() != null || 
+                        parent.GetComponent<PlayerMovement>() != null ||
+                        parent.CompareTag("Player"))
+                    {
+                        continue;
+                    }
+                }
+                
+                // 如果检测到非玩家的Collider，说明在地面上
+                return true;
             }
-            
-            if (isPlayerCollider)
-            {
-                continue;
-            }
-            
-            // 如果检测到非玩家的Collider，说明在地面上
-            return true;
         }
         
         // 如果没有找到非玩家的Collider，返回false

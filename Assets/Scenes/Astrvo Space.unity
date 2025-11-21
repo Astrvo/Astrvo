@@ -1702,13 +1702,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6339561086241511946, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
       propertyPath: m_Name
       value: NetworkManager
       objectReference: {fileID: 0}
     - target: {fileID: 7446381543621365571, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
       propertyPath: _port
-      value: 12869
+      value: 12245
+      objectReference: {fileID: 0}
+    - target: {fileID: 7446381543621365571, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+      propertyPath: _clientAddress
+      value: connect.computeflow.cloud
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1716,7 +1724,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2110660591}
+      addedObject: {fileID: 1354126264}
   m_SourcePrefab: {fileID: 100100000, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
 --- !u!1 &473533534
 GameObject:
@@ -5531,6 +5539,98 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1344162731}
   m_CullTransparentMesh: 1
+--- !u!1 &1354126256 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1354126257 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1387613003104751719, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354126256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fdaae44044276a49a52229c1597e33b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Managing.Timing.TimeManager
+--- !u!114 &1354126258 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3942027234971937945, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354126256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 211a9f6ec51ddc14f908f5acc0cd0423, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Spawning.PlayerSpawner
+--- !u!114 &1354126259 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7446381543621365571, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354126256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 362dfd7e6009fb44c90beec3df0ad853, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Bayou::FishNet.Transporting.Bayou.Bayou
+--- !u!114 &1354126260 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6339561086241511946, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354126256}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68828c85278210948b9d50a8db3aab74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Managing.Server.ServerManager
+--- !u!114 &1354126261 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3768624641814068962, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354126256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d331f979d46e8e4a9fc90070c596d44, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1354126262 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7215016875899516169, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
+  m_PrefabInstance: {fileID: 451277390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354126256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2c95dfde7d73b54dbbdc23155d35d36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!1652712579 &1354126264
+MultiplayerRolesData:
+  m_ObjectHideFlags: 2
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354126256}
+  m_GameObjectRolesMask: 3
+  m_ComponentsRolesMasks:
+  - m_Object: {fileID: 1354126262}
+    m_RolesMask: 1
+  - m_Object: {fileID: 1354126261}
+    m_RolesMask: 1
+  - m_Object: {fileID: 1354126260}
+    m_RolesMask: 1
+  - m_Object: {fileID: 1354126259}
+    m_RolesMask: 1
+  - m_Object: {fileID: 1354126258}
+    m_RolesMask: 1
+  - m_Object: {fileID: 1354126257}
+    m_RolesMask: 1
 --- !u!1 &1380875284
 GameObject:
   m_ObjectHideFlags: 0
@@ -7745,30 +7845,6 @@ MonoBehaviour:
     element: {fileID: 9074734026661611445}
   - button: {fileID: 762547796}
     element: {fileID: 5501439687877054355}
---- !u!1 &2110660583 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6702225627773206156, guid: e029df97dc566d44bbd32b80d24c477b, type: 3}
-  m_PrefabInstance: {fileID: 451277390}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2110660591
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2110660583}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3fdaae44044276a49a52229c1597e33b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Managing.Timing.TimeManager
-  _updateOrder: 0
-  _timingType: 0
-  _allowTickDropping: 1
-  _maximumFrameTicks: 3
-  _tickRate: 20
-  _pingInterval: 1
-  _physicsMode: 0
 --- !u!1 &2131827184
 GameObject:
   m_ObjectHideFlags: 0

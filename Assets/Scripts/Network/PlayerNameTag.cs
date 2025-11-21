@@ -31,6 +31,10 @@ public class PlayerNameTag : NetworkBehaviour
     private Transform _nameTagTransform;
     private bool _hasTriedToSetName = false; // 标记是否已经尝试过设置用户名
     
+    // 性能优化: 减少相机查找频率
+    private float _cameraCheckInterval = 0.5f; // 每0.5秒检查一次相机
+    private float _lastCameraCheckTime = 0f;
+    
     public override void OnStartNetwork()
     {
         base.OnStartNetwork();
@@ -515,143 +519,138 @@ public class PlayerNameTag : NetworkBehaviour
     
     private void LateUpdate()
     {
-        // 确保名称标签始终可见并正确显示
-        if (_nameTagTransform != null)
+        // 性能优化: 只在名称标签存在时才执行
+        if (_nameTagTransform == null)
+            return;
+            
+        // 性能优化: 减少不必要的激活检查（只在需要时检查）
+        // 这些检查通常只需要在初始化时执行一次
+        // 如果对象被意外禁用，会在下次相机检查时重新激活
+        
+        // 更新名称标签位置（确保在玩家头上）
+        // 性能优化: 使用Vector3.Distance或直接比较，避免创建新Vector3
+        float currentY = _nameTagTransform.localPosition.y;
+        if (Mathf.Abs(currentY - nameTagHeight) > 0.01f)
         {
-            // 确保名称标签是激活的
-            if (!_nameTagTransform.gameObject.activeSelf)
-            {
-                _nameTagTransform.gameObject.SetActive(true);
-            }
-            
-            // 确保Canvas是激活的
-            if (nameCanvas != null && !nameCanvas.gameObject.activeSelf)
-            {
-                nameCanvas.gameObject.SetActive(true);
-            }
-            
-            // 确保Text是激活的
-            if (nameText != null && !nameText.gameObject.activeSelf)
-            {
-                nameText.gameObject.SetActive(true);
-            }
-            
-            // 更新名称标签位置（确保在玩家头上）
-            if (_nameTagTransform.localPosition.y != nameTagHeight)
-            {
-                _nameTagTransform.localPosition = new Vector3(0, nameTagHeight, 0);
-            }
+            _nameTagTransform.localPosition = new Vector3(0, nameTagHeight, 0);
         }
         
-        // 更新相机引用（确保使用正确的相机）
-        // 所有客户端都应该使用当前观察者的相机（通常是Owner的相机）
+        // 性能优化: 减少相机查找频率 - 只在需要时查找
+        bool needCameraCheck = _mainCamera == null || !_mainCamera.enabled || !_mainCamera.gameObject.activeInHierarchy;
+        bool timeToCheck = Time.time - _lastCameraCheckTime >= _cameraCheckInterval;
+        
+        if (needCameraCheck && timeToCheck)
+        {
+            _lastCameraCheckTime = Time.time;
+            UpdateCameraReference();
+        }
+        
+        // 性能优化: 只在相机有效时才更新
         if (_mainCamera == null || !_mainCamera.enabled || !_mainCamera.gameObject.activeInHierarchy)
-        {
-            // 优先查找NetworkCameraController的相机（Owner的相机）
-            // 所有客户端都应该使用Owner的相机来观察name tag
-            NetworkCameraController[] cameraControllers = FindObjectsOfType<NetworkCameraController>();
-            foreach (NetworkCameraController cameraController in cameraControllers)
-            {
-                if (cameraController != null && cameraController.IsOwner)
-                {
-                    Camera cam = cameraController.GetComponent<Camera>();
-                    if (cam != null && cam.enabled && cam.gameObject.activeInHierarchy)
-                    {
-                        _mainCamera = cam;
-                        LogDebug($"Found Owner's camera: {cam.name}");
-                        break;
-                    }
-                }
-            }
+            return;
             
-            // 如果还没找到，使用主相机
-            if (_mainCamera == null || !_mainCamera.enabled || !_mainCamera.gameObject.activeInHierarchy)
-            {
-                _mainCamera = Camera.main;
-                if (_mainCamera != null)
-                {
-                    LogDebug($"Using Camera.main: {_mainCamera.name}");
-                }
-            }
-            
-            // 如果还是没有，查找所有激活的相机（优先选择启用的相机）
-            if (_mainCamera == null || !_mainCamera.enabled || !_mainCamera.gameObject.activeInHierarchy)
-            {
-                Camera[] cameras = FindObjectsOfType<Camera>();
-                Camera bestCamera = null;
-                foreach (Camera cam in cameras)
-                {
-                    if (cam != null && cam.enabled && cam.gameObject.activeInHierarchy)
-                    {
-                        // 优先选择标记为MainCamera的相机
-                        if (cam.CompareTag("MainCamera"))
-                        {
-                            bestCamera = cam;
-                            break;
-                        }
-                        // 否则选择第一个可用的相机
-                        if (bestCamera == null)
-                        {
-                            bestCamera = cam;
-                        }
-                    }
-                }
-                if (bestCamera != null)
-                {
-                    _mainCamera = bestCamera;
-                    LogDebug($"Using found camera: {_mainCamera.name}");
-                }
-            }
-        }
-        
         // 更新Canvas的worldCamera（确保正确渲染）
         if (nameCanvas != null)
         {
-            if (nameCanvas.renderMode == RenderMode.ScreenSpaceCamera || nameCanvas.renderMode == RenderMode.WorldSpace)
+            if ((nameCanvas.renderMode == RenderMode.ScreenSpaceCamera || nameCanvas.renderMode == RenderMode.WorldSpace) 
+                && nameCanvas.worldCamera != _mainCamera)
             {
-                if (nameCanvas.worldCamera != _mainCamera)
-                {
-                    nameCanvas.worldCamera = _mainCamera;
-                }
+                nameCanvas.worldCamera = _mainCamera;
             }
         }
         
         // 让名称标签始终面向相机（所有客户端都需要，仅WorldSpace模式需要）
-        if (lookAtCamera && _nameTagTransform != null && nameCanvas != null && nameCanvas.renderMode == RenderMode.WorldSpace)
+        if (lookAtCamera && nameCanvas != null && nameCanvas.renderMode == RenderMode.WorldSpace)
         {
-            if (_mainCamera != null && _mainCamera.enabled && _mainCamera.gameObject.activeInHierarchy)
+            // 计算从名称标签到相机的方向
+            Vector3 directionToCamera = _mainCamera.transform.position - _nameTagTransform.position;
+            float distance = directionToCamera.sqrMagnitude; // 使用sqrMagnitude避免开方运算
+            
+            // 如果距离太近，不旋转（避免抖动）
+            if (distance > 0.0001f) // 0.01^2 = 0.0001
             {
-                // 计算从名称标签到相机的方向
-                Vector3 directionToCamera = _mainCamera.transform.position - _nameTagTransform.position;
+                // 使用反向方向，让文字朝向相机（Billboard效果）
+                Vector3 lookDirection = -directionToCamera.normalized; // 反转方向，让文字朝向相机
                 
-                // 如果距离太近，不旋转（避免抖动）
-                if (directionToCamera.magnitude > 0.01f)
-                {
-                    // 让名称标签面向相机（Billboard效果）
-                    // 注意：LookRotation默认让Z轴指向目标，但我们需要让文字朝向相机
-                    // 所以使用反向方向，或者直接使用LookAt然后调整
-                    
-                    // 方法1：使用LookAt（会让对象朝向目标，但文字可能反）
-                    // 方法2：使用LookRotation的反方向（让文字朝向相机）
-                    Vector3 lookDirection = -directionToCamera.normalized; // 反转方向，让文字朝向相机
-                    
-                    // 计算旋转，只保留Y轴旋转（水平旋转）
-                    Quaternion targetRotation = Quaternion.LookRotation(lookDirection, Vector3.up);
-                    Vector3 eulerAngles = targetRotation.eulerAngles;
-                    
-                    // 只保留Y轴旋转，X和Z设为0（保持水平，不上下翻转）
-                    _nameTagTransform.rotation = Quaternion.Euler(0f, eulerAngles.y, 0f);
-                }
-            }
-            else
-            {
-                // 如果相机不可用，记录调试信息
-                if (enableDebugLogs && _mainCamera == null)
-                {
-                    LogDebug("Main camera is null, cannot update name tag rotation");
-                }
+                // 计算旋转，只保留Y轴旋转（水平旋转）
+                Quaternion targetRotation = Quaternion.LookRotation(lookDirection, Vector3.up);
+                Vector3 eulerAngles = targetRotation.eulerAngles;
+                
+                // 只保留Y轴旋转，X和Z设为0（保持水平，不上下翻转）
+                _nameTagTransform.rotation = Quaternion.Euler(0f, eulerAngles.y, 0f);
             }
         }
+    }
+    
+    /// <summary>
+    /// 更新相机引用（性能优化: 只在需要时调用，优先使用Camera.main避免FindObjectsOfType）
+    /// </summary>
+    private void UpdateCameraReference()
+    {
+        // 性能优化: 优先使用Camera.main（Owner的相机应该被标记为MainCamera）
+        // 这样可以避免使用FindObjectsOfType，大大提高性能
+        if (Camera.main != null && Camera.main.enabled && Camera.main.gameObject.activeInHierarchy)
+        {
+            _mainCamera = Camera.main;
+            #if UNITY_EDITOR
+            LogDebug($"Using Camera.main: {_mainCamera.name}");
+            #endif
+            return;
+        }
+        
+        // 如果Camera.main不可用，尝试通过NetworkCameraController查找（但使用更高效的方式）
+        // 性能优化: 使用FindFirstObjectByType（Unity 2023.1+）或FindObjectsOfType（旧版本）
+        // 注意：由于我们已经将Owner的相机设置为MainCamera，这个分支应该很少执行
+        NetworkCameraController cameraController = null;
+        #if UNITY_2023_1_OR_NEWER
+        cameraController = FindFirstObjectByType<NetworkCameraController>();
+        #else
+        NetworkCameraController[] controllers = FindObjectsOfType<NetworkCameraController>();
+        if (controllers != null && controllers.Length > 0)
+        {
+            cameraController = controllers[0];
+        }
+        #endif
+        
+        if (cameraController != null && cameraController.IsOwner)
+        {
+            Camera cam = cameraController.GetComponent<Camera>();
+            if (cam != null && cam.enabled && cam.gameObject.activeInHierarchy)
+            {
+                _mainCamera = cam;
+                #if UNITY_EDITOR
+                LogDebug($"Found Owner's camera: {cam.name}");
+                #endif
+                return;
+            }
+        }
+        
+        // 最后的后备方案：查找所有激活的相机（性能开销较大，应尽量避免）
+        // 性能优化: 使用FindFirstObjectByType而不是FindObjectsOfType（Unity 2023.1+）
+        #if UNITY_2023_1_OR_NEWER
+        Camera foundCamera = FindFirstObjectByType<Camera>();
+        if (foundCamera != null && foundCamera.enabled && foundCamera.gameObject.activeInHierarchy)
+        {
+            _mainCamera = foundCamera;
+            #if UNITY_EDITOR
+            LogDebug($"Using found camera: {_mainCamera.name}");
+            #endif
+        }
+        #else
+        // Unity旧版本的回退方案（性能较差，应尽量避免）
+        Camera[] cameras = FindObjectsOfType<Camera>();
+        foreach (Camera cam in cameras)
+        {
+            if (cam != null && cam.enabled && cam.gameObject.activeInHierarchy)
+            {
+                _mainCamera = cam;
+                #if UNITY_EDITOR
+                LogDebug($"Using found camera: {_mainCamera.name}");
+                #endif
+                break;
+            }
+        }
+        #endif
     }
     
     private void LogDebug(string message)

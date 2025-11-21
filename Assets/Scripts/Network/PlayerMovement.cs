@@ -37,6 +37,11 @@ public class PlayerMovement : NetworkBehaviour
     private bool isRunning;
     private float verticalVelocity = 0f; // 垂直速度
     
+    // 性能优化: 减少地面检测频率
+    private float _groundCheckInterval = 0.1f; // 每0.1秒检测一次地面
+    private float _lastGroundCheckTime = 0f;
+    private bool _cachedIsGrounded = false;
+    
     // 移动速度属性，供动画控制器使用
     public float CurrentMoveSpeed { get; private set; }
     public bool IsMoving => currentMovementInput.magnitude > 0.1f;
@@ -202,8 +207,16 @@ public class PlayerMovement : NetworkBehaviour
     /// </summary>
     private void HandleGravity()
     {
+        // 性能优化: 减少物理检测频率
+        bool needGroundCheck = Time.time - _lastGroundCheckTime >= _groundCheckInterval;
+        if (needGroundCheck)
+        {
+            _lastGroundCheckTime = Time.time;
+            _cachedIsGrounded = IsGrounded();
+        }
+        
         // 使用GroundCheck的方式检测地面（参考GroundCheck.IsGrounded）
-        bool isGrounded = IsGrounded();
+        bool isGrounded = _cachedIsGrounded;
         
         // 参考ThirdPersonMovement：如果在地面上且垂直速度向下，重置为小的负值
         if (isGrounded && verticalVelocity < 0)
