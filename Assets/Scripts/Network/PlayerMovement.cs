@@ -45,9 +45,11 @@ public class PlayerMovement : NetworkBehaviour
     {
         base.OnStartClient();
         
-        // 只有Owner才能启用输入
+        // 只有Owner才启用此组件
         if (IsOwner)
         {
+            this.enabled = true;
+
             controller = GetComponent<CharacterController>();
             if (controller == null)
             {
@@ -95,7 +97,9 @@ public class PlayerMovement : NetworkBehaviour
         }
         else
         {
-            // 非Owner禁用输入组件
+            // 非Owner禁用此组件和输入组件
+            this.enabled = false;
+
             playerInput = GetComponent<UnityEngine.InputSystem.PlayerInput>();
             if (playerInput != null)
             {
@@ -106,7 +110,6 @@ public class PlayerMovement : NetworkBehaviour
 
     public void OnMove(InputValue value)
     {
-        if (!IsOwner) return;
         currentMovementInput = value.Get<Vector2>();
     }
     
@@ -136,16 +139,11 @@ public class PlayerMovement : NetworkBehaviour
     
     public void OnSprint(InputValue value)
     {
-        if (!IsOwner) return;
         isRunning = value.isPressed;
     }
 
     void Update()
     {
-        // 只有Owner才能控制移动
-        if (!IsOwner)
-            return;
-            
         if (controller == null)
             return;
 

@@ -248,16 +248,29 @@ public class PlayerNameTag : NetworkBehaviour
         string username = GetUsername();
         if (!string.IsNullOrEmpty(username))
         {
-            // 设置SyncVar（会自动同步到服务器和所有客户端）
-            _playerName.Value = username;
+            // 立即更新本地显示
             UpdateNameDisplay(username);
-            LogDebug($"Player name set: {username} (IsOwner: {IsOwner}, IsServer: {IsServer})");
+            
+            // 通过ServerRpc发送到服务器
+            ServerSetPlayerName(username);
+            LogDebug($"Player name set locally and sent to server: {username} (IsOwner: {IsOwner})");
         }
         else
         {
             // 如果用户名还没准备好，等待一下
             StartCoroutine(WaitForUsernameAndSet());
         }
+    }
+    
+    /// <summary>
+    /// 服务器端设置玩家名称（通过ServerRpc调用）
+    /// </summary>
+    [ServerRpc]
+    public void ServerSetPlayerName(string name)
+    {
+        // 服务器端设置SyncVar，会自动同步到所有客户端
+        _playerName.Value = name;
+        LogDebug($"Server received and set player name: {name}");
     }
     
     /// <summary>
@@ -277,16 +290,21 @@ public class PlayerNameTag : NetworkBehaviour
         string username = GetUsername();
         if (!string.IsNullOrEmpty(username))
         {
-            _playerName.Value = username;
+            // 立即更新本地显示
             UpdateNameDisplay(username);
-            LogDebug($"Player name set after wait: {username}");
+            
+            ServerSetPlayerName(username);
+            LogDebug($"Player name set locally and sent to server after wait: {username}");
         }
         else
         {
             // 使用默认名称
             string defaultName = $"Player_{NetworkObject.OwnerId}";
-            _playerName.Value = defaultName;
+            
+            // 立即更新本地显示
             UpdateNameDisplay(defaultName);
+            
+            ServerSetPlayerName(defaultName);
             LogDebug($"Using default name: {defaultName}");
         }
     }

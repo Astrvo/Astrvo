@@ -68,9 +68,11 @@ public class NetworkCameraController : NetworkBehaviour
         
         cam = GetComponent<Camera>();
         
-        // 只有Owner才能控制相机
+        // 只有Owner才启用此组件和相机
         if (IsOwner)
         {
+            this.enabled = true;
+
             // 启用相机并设置为MainCamera（如果场景中没有其他主相机）
             if (cam != null)
             {
@@ -180,7 +182,9 @@ public class NetworkCameraController : NetworkBehaviour
         }
         else
         {
-            // 非Owner禁用相机
+            // 非Owner禁用此组件和相机
+            this.enabled = false;
+
             if (cam != null)
             {
                 cam.enabled = false;
@@ -191,23 +195,17 @@ public class NetworkCameraController : NetworkBehaviour
     // 保留这些方法以兼容PlayerInput的自动绑定（如果使用）
     public void OnLook(InputValue value)
     {
-        if (!IsOwner) return;
         lookInput = value.Get<Vector2>();
     }
     
     public void OnScroll(InputValue value)
     {
-        if (!IsOwner) return;
         Vector2 scrollValue = value.Get<Vector2>();
         scrollInput = scrollValue.y;
     }
 
     void LateUpdate()
     {
-        // 只有Owner才能更新相机
-        if (!IsOwner)
-            return;
-            
         if (target == null)
             return;
         

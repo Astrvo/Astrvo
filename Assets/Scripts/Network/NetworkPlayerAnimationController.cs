@@ -230,17 +230,14 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
         if (!isInitialized || animator == null || avatar == null)
             return;
         
-        // 对于非Owner客户端，计算移动速度
-        if (!IsOwner)
-        {
-            CalculateMoveSpeedFromPosition();
-        }
+        // 统一使用位移计算移动速度（不管是不是Owner）
+        CalculateMoveSpeedFromPosition();
         
         UpdateAnimator();
     }
     
     /// <summary>
-    /// 根据位置变化计算移动速度（用于非Owner客户端）
+    /// 根据位置变化计算移动速度
     /// </summary>
     private void CalculateMoveSpeedFromPosition()
     {
@@ -251,10 +248,15 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
         horizontalDelta.y = 0f; // 只计算水平移动
         
         // 计算速度（米/秒）
-        float speed = horizontalDelta.magnitude / Time.deltaTime;
-        
-        // 平滑速度变化，避免抖动
-        calculatedMoveSpeed = Mathf.SmoothDamp(calculatedMoveSpeed, speed, ref moveSpeedSmoothVelocity, 0.1f);
+        // 防止除以0
+        float deltaTime = Time.deltaTime;
+        if (deltaTime > 0)
+        {
+            float speed = horizontalDelta.magnitude / deltaTime;
+            
+            // 平滑速度变化，避免抖动
+            calculatedMoveSpeed = Mathf.SmoothDamp(calculatedMoveSpeed, speed, ref moveSpeedSmoothVelocity, animationSmoothTime);
+        }
         
         // 更新上一帧位置
         lastPosition = currentPosition;
@@ -265,35 +267,34 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
     /// </summary>
     private void UpdateAnimator()
     {
-        // 获取移动速度
-        float targetMoveSpeed = 0f;
+        // 使用计算出的速度（基于位移）
+        float targetMoveSpeed = calculatedMoveSpeed;
         
-        if (IsOwner)
+        // 设置移动速度参数
+        // 优化：只有值变化超过阈值才设置，减少Animator调用开销
+        if (Mathf.Abs(animator.GetFloat(MoveSpeedHash) - targetMoveSpeed) > 0.01f)
         {
-            // Owner客户端：从PlayerMovement获取
-            if (playerMovement != null)
-            {
-                targetMoveSpeed = playerMovement.CurrentMoveSpeed;
-            }
+            animator.SetFloat(MoveSpeedHash, targetMoveSpeed);
         }
-        else
-        {
-            // 非Owner客户端：使用计算出的速度
-            targetMoveSpeed = calculatedMoveSpeed;
-        }
-        
-        // 设置移动速度参数（ThirdPersonController直接设置，不进行平滑）
-        animator.SetFloat(MoveSpeedHash, targetMoveSpeed);
         
         // 处理地面检测和自由落体
         bool isGrounded = IsGrounded();
-        animator.SetBool(IsGroundedHash, isGrounded);
+        
+        // 优化：只有状态变化才设置
+        if (animator.GetBool(IsGroundedHash) != isGrounded)
+        {
+            animator.SetBool(IsGroundedHash, isGrounded);
+        }
         
         if (isGrounded)
         {
             // 在地面上
             fallTimeoutDelta = FALL_TIMEOUT;
-            animator.SetBool(FreeFallHash, false);
+            
+            if (animator.GetBool(FreeFallHash))
+            {
+                animator.SetBool(FreeFallHash, false);
+            }
         }
         else
         {
@@ -305,7 +306,10 @@ public class NetworkPlayerAnimationController : NetworkBehaviour
             else
             {
                 // 进入自由落体状态
-                animator.SetBool(FreeFallHash, true);
+                if (!animator.GetBool(FreeFallHash))
+                {
+                    animator.SetBool(FreeFallHash, true);
+                }
             }
         }
     }
