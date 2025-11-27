@@ -54,6 +54,12 @@ public class PlayerNameTag : NetworkBehaviour
         // 初始化名称标签（所有客户端都需要）
         InitializeNameTag();
         
+        // 订阅用户名更新事件（仅Owner需要监听）
+        if (IsOwner)
+        {
+            PlayFabSystem.UsernameManager.OnUsernameChanged += OnUsernameManagerChanged;
+        }
+        
         // 如果是Owner，设置用户名
         if (IsOwner)
         {
@@ -127,6 +133,12 @@ public class PlayerNameTag : NetworkBehaviour
         // 取消订阅事件（SyncVar永远不会为null，所以直接取消订阅）
         _playerName.OnChange -= OnPlayerNameChanged;
         
+        // 取消订阅用户名更新事件
+        if (IsOwner)
+        {
+            PlayFabSystem.UsernameManager.OnUsernameChanged -= OnUsernameManagerChanged;
+        }
+        
         LogDebug("OnStopClient called, unsubscribed from name change event");
     }
     
@@ -136,6 +148,9 @@ public class PlayerNameTag : NetworkBehaviour
         
         // 取消订阅事件
         _playerName.OnChange -= OnPlayerNameChanged;
+        
+        // 取消订阅用户名更新事件（安全起见，即使可能已经取消订阅）
+        PlayFabSystem.UsernameManager.OnUsernameChanged -= OnUsernameManagerChanged;
         
         LogDebug("OnStopNetwork called, unsubscribed from name change event");
     }
@@ -476,12 +491,35 @@ public class PlayerNameTag : NetworkBehaviour
     }
     
     /// <summary>
-    /// 用户名变化回调
+    /// 用户名变化回调（SyncVar变化时触发）
     /// </summary>
     private void OnPlayerNameChanged(string oldName, string newName, bool asServer)
     {
         LogDebug($"Player name changed from '{oldName}' to '{newName}' (asServer: {asServer}, IsOwner: {IsOwner})");
         UpdateNameDisplay(newName);
+    }
+    
+    /// <summary>
+    /// UsernameManager用户名更新回调（仅Owner触发）
+    /// </summary>
+    private void OnUsernameManagerChanged(string newUsername)
+    {
+        // 只有Owner才需要处理这个事件
+        if (!IsOwner)
+        {
+            return;
+        }
+        
+        LogDebug($"UsernameManager username changed to: {newUsername} (IsOwner: {IsOwner})");
+        
+        // 更新本地显示
+        UpdateNameDisplay(newUsername);
+        
+        // 同步到网络（更新SyncVar并广播）
+        TrySetSyncVarDirectly(newUsername);
+        BroadcastPlayerName(newUsername);
+        
+        LogDebug($"Player name updated and synced: {newUsername}");
     }
     
     /// <summary>
