@@ -490,6 +490,7 @@ GameObject:
   - component: {fileID: 735510397914732398}
   - component: {fileID: 6578854677465248978}
   - component: {fileID: 4600696154320314722}
+  - component: {fileID: -6865020744428084570}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -803,6 +804,28 @@ MonoBehaviour:
   nameColor: {r: 1, g: 1, b: 1, a: 1}
   fontSize: 12
   enableDebugLogs: 1
+--- !u!114 &-6865020744428084570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5341780371893165765}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9e64a03fd6768444ba5df28803d9e2e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionSystem.PlayerInteractionController
+  interactionKey: 101
+  enableMouseInput: 1
+  enableKeyboardInput: 1
+  detectionRange: 8
+  interactionLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  requireLineOfSight: 1
+  enableDebugLogs: 1
+  showDebugGizmos: 1
 --- !u!1 &7038517951158424568
 GameObject:
   m_ObjectHideFlags: 0
