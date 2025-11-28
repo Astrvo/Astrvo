@@ -174,6 +174,9 @@ namespace InteractionSystem
         
         private void UpdateNearbyInteractables()
         {
+            // 先清理已销毁的对象引用
+            CleanupDestroyedInteractables();
+            
             // 手动检测附近的交互对象
             var allInteractables = FindObjectsOfType<InteractableObject>();
             var newNearbyInteractables = new List<InteractableObject>();
@@ -227,6 +230,30 @@ namespace InteractionSystem
             }
         }
         
+        /// <summary>
+        /// 清理已销毁的交互对象引用
+        /// </summary>
+        private void CleanupDestroyedInteractables()
+        {
+            // 清理 nearbyInteractables 中的已销毁对象
+            for (int i = nearbyInteractables.Count - 1; i >= 0; i--)
+            {
+                if (nearbyInteractables[i] == null)
+                {
+                    nearbyInteractables.RemoveAt(i);
+                }
+            }
+            
+            // 清理 allInteractables 中的已销毁对象
+            for (int i = allInteractables.Count - 1; i >= 0; i--)
+            {
+                if (allInteractables[i] == null)
+                {
+                    allInteractables.RemoveAt(i);
+                }
+            }
+        }
+        
         private void UpdateInteractionUI()
         {
             // 移除当前UI
@@ -277,7 +304,7 @@ namespace InteractionSystem
             
             // 选择最近的交互对象
             var nearestInteractable = GetNearestInteractable();
-            if (nearestInteractable == null) return;
+            if (nearestInteractable == null || nearestInteractable.transform == null) return;
             
             // 获取交互对象的世界位置 - 使用可配置的偏移量
             Vector3 interactableWorldPosition = nearestInteractable.transform.position;
@@ -388,7 +415,9 @@ namespace InteractionSystem
             Transform player = GetPlayerTransform();
             if (player == null) return null;
             
+            // 过滤掉已销毁的对象，然后排序
             return nearbyInteractables
+                .Where(x => x != null && x.transform != null)
                 .OrderBy(x => Vector3.Distance(x.transform.position, player.position))
                 .FirstOrDefault();
         }
