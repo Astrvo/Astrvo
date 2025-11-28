@@ -104,16 +104,26 @@ public class LoadingManager : MonoBehaviour
             lastProgressValue = 0f;
             Debug.Log($"[LoadingManager] 检查space状态 - 已加载: {spaceManager.IsSpaceLoaded("snekspace")}, 正在加载: {spaceManager.IsSpaceLoading("snekspace")}");
             
-            // 检查space是否已经加载或正在加载
-            if (!spaceManager.IsSpaceLoaded("snekspace") && !spaceManager.IsSpaceLoading("snekspace"))
+            // 检查space是否已经加载
+            if (spaceManager.IsSpaceLoaded("snekspace"))
             {
-                Debug.Log("[LoadingManager] 开始加载space snekspace");
-                spaceManager.LoadSpace("snekspace");
+                Debug.Log("Space snekspace 已经加载完成");
+                spaceLoaded = true; // 已经加载完成，直接标记
             }
+            // 检查space是否正在加载
+            else if (spaceManager.IsSpaceLoading("snekspace"))
+            {
+                Debug.Log("Space snekspace 正在加载中，等待加载完成...");
+                // 不要设置 spaceLoaded = true，而是等待 OnSpaceLoadComplete 事件
+                // 重置 spaceLoaded 确保等待循环能正常工作
+                spaceLoaded = false;
+            }
+            // 如果既没有加载也没有正在加载，则开始加载
             else
             {
-                Debug.Log("Space snekspace 已经加载或正在加载中，跳过重复加载");
-                spaceLoaded = true; // 直接标记为已加载
+                Debug.Log("[LoadingManager] 开始加载space snekspace");
+                spaceLoaded = false; // 确保状态正确
+                spaceManager.LoadSpace("snekspace");
             }
         }
         
@@ -121,6 +131,13 @@ public class LoadingManager : MonoBehaviour
         float spaceLoadTimeoutStartTime = Time.time;
         while (!spaceLoaded && !isLoadingComplete && (Time.time - spaceLoadTimeoutStartTime) < spaceLoadTimeout)
         {
+            // 如果space已经加载完成但事件还没触发，检查状态
+            if (spaceManager != null && spaceManager.IsSpaceLoaded("snekspace") && !spaceLoaded)
+            {
+                Debug.Log("[LoadingManager] 检测到space已加载完成，但事件未触发，手动标记");
+                spaceLoaded = true;
+                break;
+            }
             yield return null;
         }
         
@@ -438,6 +455,29 @@ public class LoadingManager : MonoBehaviour
             retryCount++;
             Debug.Log($"[LoadingManager] 重试加载 (第 {retryCount} 次)");
             
+            // 检查space是否正在加载或已加载
+            if (spaceManager != null)
+            {
+                bool isCurrentlyLoading = spaceManager.IsSpaceLoading("snekspace");
+                bool isAlreadyLoaded = spaceManager.IsSpaceLoaded("snekspace");
+                
+                if (isCurrentlyLoading)
+                {
+                    Debug.Log("[LoadingManager] Space正在加载中，等待当前加载完成而不是重新加载");
+                    // 如果正在加载，不要重置状态，而是等待当前加载完成
+                    spaceLoaded = false; // 重置标记，等待 OnSpaceLoadComplete 事件
+                    StartCoroutine(WaitForCurrentLoad());
+                    return;
+                }
+                else if (isAlreadyLoaded)
+                {
+                    Debug.Log("[LoadingManager] Space已经加载完成，直接完成加载流程");
+                    spaceLoaded = true;
+                    StartCoroutine(CompleteLoadingSequence());
+                    return;
+                }
+            }
+            
             // 重置状态
             spaceLoaded = false;
             isLoadingComplete = false;
@@ -452,5 +492,57 @@ public class LoadingManager : MonoBehaviour
             Debug.LogError("[LoadingManager] Maximum retry attempts reached, please refresh the page");
             UpdateLoadingUI("Failed, please refresh", 0f);
         }
+    }
+    
+    /// <summary>
+    /// 等待当前正在进行的加载完成
+    /// </summary>
+    private IEnumerator WaitForCurrentLoad()
+    {
+        float waitStartTime = Time.time;
+        float waitTimeout = spaceLoadTimeout;
+        
+        Debug.Log("[LoadingManager] 等待当前space加载完成...");
+        
+        while (!spaceLoaded && !isLoadingComplete && (Time.time - waitStartTime) < waitTimeout)
+        {
+            // 检查space是否已经加载完成
+            if (spaceManager != null && spaceManager.IsSpaceLoaded("snekspace"))
+            {
+                Debug.Log("[LoadingManager] 检测到space已加载完成");
+                spaceLoaded = true;
+                break;
+            }
+            yield return null;
+        }
+        
+        if (spaceLoaded)
+        {
+            StartCoroutine(CompleteLoadingSequence());
+        }
+        else
+        {
+            Debug.LogError("[LoadingManager] 等待当前加载超时");
+            if (retryCount < maxRetries)
+            {
+                UpdateLoadingUI($"Timeout, retry {retryCount + 1}/{maxRetries}", 0f);
+                yield return new WaitForSeconds(2f);
+                RetryLoading();
+            }
+            else
+            {
+                UpdateLoadingUI("Failed, please refresh", 0f);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 完成加载序列（Space已加载完成）
+    /// </summary>
+    private IEnumerator CompleteLoadingSequence()
+    {
+        UpdateLoadingUI("Complete", 1.0f);
+        yield return new WaitForSeconds(loadingDelay);
+        CompleteLoading();
     }
 }
