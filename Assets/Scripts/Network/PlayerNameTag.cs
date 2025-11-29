@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using FishNet.Object;
+using FishNet.Connection;
 using System.Collections;
 
 /// <summary>
@@ -354,6 +355,26 @@ public class PlayerNameTag : NetworkBehaviour
         _currentUsername = username;
         UpdateNameDisplay(username);
         LogDebug($"Username updated from server: {username} (IsOwner: {IsOwner})");
+    }
+    
+    /// <summary>
+    /// 服务器调用：向特定客户端同步已存在玩家的用户名
+    /// 用于新玩家加入时，服务器向其发送已存在玩家的用户名
+    /// 这个方法在已存在玩家的PlayerNameTag上调用，向新玩家发送该玩家的用户名
+    /// </summary>
+    [TargetRpc]
+    public void SyncUsernameToClient(NetworkConnection targetConnection, string username)
+    {
+        if (string.IsNullOrEmpty(username))
+        {
+            LogWarning("SyncUsernameToClient received empty username");
+            return;
+        }
+        
+        // 更新当前PlayerNameTag的用户名显示（这是已存在玩家的用户名，新玩家需要看到）
+        _currentUsername = username;
+        UpdateNameDisplay(username);
+        LogDebug($"Username synced to new client: {username} for player {NetworkObject.ObjectId} (IsOwner: {IsOwner})");
     }
     
     /// <summary>

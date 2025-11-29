@@ -2,6 +2,7 @@ using UnityEngine;
 using FishNet.Object;
 using FishNet.Managing;
 using FishNet.Connection;
+using FishNet.Component.Spawning;
 using System.Collections.Generic;
 using System;
 
@@ -26,6 +27,7 @@ public class ServerUsernameManager : MonoBehaviour
     private Dictionary<int, NetworkConnection> _playerConnections = new Dictionary<int, NetworkConnection>();
     
     private NetworkManager _networkManager;
+    private PlayerSpawner _playerSpawner;
     private bool _isServer = false;
     
     private void Awake()
@@ -52,6 +54,19 @@ public class ServerUsernameManager : MonoBehaviour
         {
             LogError("NetworkManager not found! ServerUsernameManager may not work correctly.");
             return;
+        }
+        
+        // 查找PlayerSpawner
+        _playerSpawner = FindObjectOfType<PlayerSpawner>();
+        if (_playerSpawner != null)
+        {
+            // 订阅玩家生成事件
+            _playerSpawner.OnSpawned += OnPlayerSpawned;
+            LogDebug("Subscribed to PlayerSpawner.OnSpawned event");
+        }
+        else
+        {
+            LogWarning("PlayerSpawner not found! Cannot sync existing usernames to new players.");
         }
         
         // 延迟检查服务器状态，因为NetworkManager可能还没完全初始化
@@ -84,6 +99,12 @@ public class ServerUsernameManager : MonoBehaviour
     
     private void OnDestroy()
     {
+        // 取消订阅玩家生成事件
+        if (_playerSpawner != null)
+        {
+            _playerSpawner.OnSpawned -= OnPlayerSpawned;
+        }
+        
         if (Instance == this)
         {
             Instance = null;
@@ -91,6 +112,102 @@ public class ServerUsernameManager : MonoBehaviour
             _playerConnections.Clear();
             LogDebug("ServerUsernameManager destroyed");
         }
+    }
+    
+    /// <summary>
+    /// 当新玩家生成时调用（服务器端）
+    /// 向新玩家发送所有已存在玩家的用户名
+    /// </summary>
+    private void OnPlayerSpawned(NetworkObject playerObject)
+    {
+        if (!_isServer)
+        {
+            return;
+        }
+        
+        if (playerObject == null)
+        {
+            LogWarning("OnPlayerSpawned called with null playerObject");
+            return;
+        }
+        
+        LogDebug($"New player spawned: {playerObject.ObjectId}, syncing existing usernames...");
+        
+        // 延迟一小段时间，确保新玩家的PlayerNameTag完全初始化
+        StartCoroutine(DelayedSyncUsernamesToNewPlayer(playerObject));
+    }
+    
+    /// <summary>
+    /// 延迟向新玩家同步已存在玩家的用户名
+    /// </summary>
+    private System.Collections.IEnumerator DelayedSyncUsernamesToNewPlayer(NetworkObject playerObject)
+    {
+        // 等待几帧，确保新玩家的PlayerNameTag完全初始化
+        yield return new WaitForSeconds(0.5f);
+        
+        // 再次检查玩家对象是否仍然有效
+        if (playerObject != null && playerObject.IsSpawned)
+        {
+            SyncExistingUsernamesToNewPlayer(playerObject);
+        }
+    }
+    
+    /// <summary>
+    /// 向新玩家同步所有已存在玩家的用户名
+    /// </summary>
+    private void SyncExistingUsernamesToNewPlayer(NetworkObject newPlayerObject)
+    {
+        if (newPlayerObject == null || !newPlayerObject.IsSpawned)
+        {
+            LogWarning("Cannot sync usernames: new player object is null or not spawned");
+            return;
+        }
+        
+        // 获取新玩家对象上的PlayerNameTag组件
+        PlayerNameTag newPlayerNameTag = newPlayerObject.GetComponent<PlayerNameTag>();
+        if (newPlayerNameTag == null)
+        {
+            LogWarning($"PlayerNameTag not found on new player {newPlayerObject.ObjectId}");
+            return;
+        }
+        
+        // 遍历所有已存在的玩家，向新玩家发送他们的用户名
+        int syncedCount = 0;
+        foreach (var kvp in _playerUsernames)
+        {
+            int existingPlayerId = kvp.Key;
+            string existingUsername = kvp.Value;
+            
+            // 跳过新玩家自己
+            if (existingPlayerId == newPlayerObject.ObjectId)
+            {
+                continue;
+            }
+            
+            // 查找已存在玩家的NetworkObject
+            if (_networkManager != null && _networkManager.ServerManager != null && 
+                _networkManager.ServerManager.Objects != null)
+            {
+                if (_networkManager.ServerManager.Objects.Spawned.TryGetValue(existingPlayerId, out NetworkObject existingPlayerObject))
+                {
+                    if (existingPlayerObject != null && existingPlayerObject.IsSpawned)
+                    {
+                        // 获取已存在玩家的PlayerNameTag
+                        PlayerNameTag existingPlayerNameTag = existingPlayerObject.GetComponent<PlayerNameTag>();
+                        if (existingPlayerNameTag != null)
+                        {
+                            // 通过RPC向新玩家发送已存在玩家的用户名
+                            // 注意：这里需要调用一个专门的方法来向特定客户端发送用户名
+                            existingPlayerNameTag.SyncUsernameToClient(newPlayerObject.Owner, existingUsername);
+                            syncedCount++;
+                            LogDebug($"Synced username '{existingUsername}' (player {existingPlayerId}) to new player {newPlayerObject.ObjectId}");
+                        }
+                    }
+                }
+            }
+        }
+        
+        LogDebug($"Synced {syncedCount} existing username(s) to new player {newPlayerObject.ObjectId}");
     }
     
     /// <summary>
