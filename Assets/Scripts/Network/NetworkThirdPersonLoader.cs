@@ -30,7 +30,17 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
         [Header("调试设置")]
         [SerializeField] private bool enableDebugLogs = true;
         
+        [Header("加载设置")]
+        [SerializeField] private float maxWaitTimeForUrl = 10f; // 非Owner客户端等待URL的最大时间
+        [SerializeField] private float urlCheckInterval = 0.2f; // 检查URL的间隔时间
+        [SerializeField] private int maxLoadRetries = 3; // 最大重试次数
+        [SerializeField] private float retryDelay = 2f; // 重试延迟时间
+        
         public event Action OnLoadComplete;
+        
+        private int _loadRetryCount = 0; // 当前重试次数
+        private bool _isLoading = false; // 是否正在加载
+        private System.Collections.IEnumerator _checkUrlCoroutine; // URL检查协程
         
         public override void OnStartServer()
         {
@@ -48,6 +58,10 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
         public override void OnStartClient()
         {
             base.OnStartClient();
+            
+            // 重置重试计数
+            _loadRetryCount = 0;
+            _isLoading = false;
             
             // 所有客户端都需要初始化AvatarObjectLoader（不只是Owner）
             avatarObjectLoader = new AvatarObjectLoader();
@@ -86,6 +100,9 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 // 非Owner：检查是否已经有同步的URL
                 LogDebug($"Non-owner: Checking for synced avatar URL... (NetworkObjectId: {NetworkObject.ObjectId})");
                 
+                // 立即检查并修复y坐标（防止新加入的玩家掉下去）
+                StartCoroutine(CheckAndFixYPositionForNewPlayer());
+                
                 // 立即检查一次（可能SyncVar已经同步了）
                 if (!string.IsNullOrEmpty(_syncedAvatarUrl.Value))
                 {
@@ -96,9 +113,47 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 {
                     // 如果没有，使用协程延迟检查
                     LogDebug("Non-owner: No URL yet, starting delayed check...");
-                    StartCoroutine(CheckAndLoadAvatarForNonOwner());
+                    _checkUrlCoroutine = CheckAndLoadAvatarForNonOwner();
+                    StartCoroutine(_checkUrlCoroutine);
                 }
             }
+            
+            // 启动定期检查，确保avatar和玩家GameObject始终激活
+            StartCoroutine(PeriodicActivationCheck());
+        }
+        
+        /// <summary>
+        /// 检查并修复新加入玩家的y坐标（防止掉下去）
+        /// </summary>
+        private System.Collections.IEnumerator CheckAndFixYPositionForNewPlayer()
+        {
+            // 等待一小段时间，确保NetworkTransform已经同步了初始位置
+            yield return new WaitForSeconds(0.2f);
+            yield return new WaitForFixedUpdate();
+            
+            // 检查对象是否已被销毁
+            if (this == null || gameObject == null)
+            {
+                yield break;
+            }
+            
+            // 将y坐标复位到0
+            Vector3 playerPos = transform.position;
+            Vector3 fixedPos = new Vector3(playerPos.x, 0f, playerPos.z);
+            
+            CharacterController controller = GetComponent<CharacterController>();
+            if (controller != null)
+            {
+                controller.enabled = false;
+                transform.position = fixedPos;
+                controller.enabled = true;
+            }
+            else
+            {
+                transform.position = fixedPos;
+            }
+            
+            LogDebug($"Non-owner: Reset new player y position to 0: {playerPos} -> {fixedPos}");
         }
         
         /// <summary>
@@ -106,48 +161,58 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
         /// </summary>
         private System.Collections.IEnumerator CheckAndLoadAvatarForNonOwner()
         {
-            // 等待几帧，确保SyncVar已经同步
+            float elapsedTime = 0f;
+            bool urlFound = false;
+            
+            // 先等待一小段时间，确保SyncVar有机会同步
             yield return new WaitForSeconds(0.1f);
+            elapsedTime += 0.1f;
             
-            // 检查是否有同步的URL
-            string syncedUrl = _syncedAvatarUrl.Value;
-            LogDebug($"Non-owner: After 0.1s wait, synced URL = '{syncedUrl}' (empty: {string.IsNullOrEmpty(syncedUrl)})");
-            
-            if (!string.IsNullOrEmpty(syncedUrl))
+            // 循环检查URL，直到找到或超时
+            while (elapsedTime < maxWaitTimeForUrl && !urlFound)
             {
-                LogDebug($"Non-owner: Found synced avatar URL: {syncedUrl}");
-                LoadAvatarForClient(syncedUrl);
-                yield break;
-            }
-            
-            LogDebug("Non-owner: No synced avatar URL yet, waiting longer...");
-            
-            // 如果还没有URL，显示预览avatar（如果有）
-            if (previewAvatar != null)
-            {
-                SetupAvatar(previewAvatar);
-            }
-            
-            // 再等待一下，如果还是没有，可能是URL还没同步
-            yield return new WaitForSeconds(0.5f);
-            
-            syncedUrl = _syncedAvatarUrl.Value;
-            LogDebug($"Non-owner: After 0.6s total wait, synced URL = '{syncedUrl}' (empty: {string.IsNullOrEmpty(syncedUrl)})");
-            
-            if (!string.IsNullOrEmpty(syncedUrl))
-            {
-                LogDebug($"Non-owner: Avatar URL synced after wait: {syncedUrl}");
-                LoadAvatarForClient(syncedUrl);
-            }
-            else
-            {
-                LogWarning($"Non-owner: Still no avatar URL after waiting. syncedUrl: '{syncedUrl}', prefab avatarUrl: '{avatarUrl}', NetworkObjectId: {NetworkObject.ObjectId}");
+                string syncedUrl = _syncedAvatarUrl.Value;
                 
-                // 如果还是没有，尝试使用prefab中的默认值（作为后备方案）
+                if (!string.IsNullOrEmpty(syncedUrl))
+                {
+                    LogDebug($"Non-owner: Found synced avatar URL after {elapsedTime:F1}s: {syncedUrl}");
+                    LoadAvatarForClient(syncedUrl);
+                    urlFound = true;
+                    yield break;
+                }
+                
+                // 如果还没有URL，显示预览avatar（如果有且还没显示）
+                if (previewAvatar != null && avatar == null)
+                {
+                    SetupAvatar(previewAvatar);
+                }
+                
+                // 等待下一次检查
+                yield return new WaitForSeconds(urlCheckInterval);
+                elapsedTime += urlCheckInterval;
+                
+                // 每2秒记录一次日志
+                if (Mathf.FloorToInt(elapsedTime) % 2 == 0 && Mathf.Approximately(elapsedTime % 1f, 0f))
+                {
+                    LogDebug($"Non-owner: Still waiting for avatar URL... (elapsed: {elapsedTime:F1}s)");
+                }
+            }
+            
+            // 如果超时还没找到URL
+            if (!urlFound)
+            {
+                string syncedUrl = _syncedAvatarUrl.Value;
+                LogWarning($"Non-owner: No avatar URL after {elapsedTime:F1}s. syncedUrl: '{syncedUrl}', prefab avatarUrl: '{avatarUrl}', NetworkObjectId: {NetworkObject.ObjectId}");
+                
+                // 尝试使用prefab中的默认值（作为后备方案）
                 if (!string.IsNullOrEmpty(avatarUrl))
                 {
                     LogWarning($"Non-owner: Using prefab avatarUrl as fallback: {avatarUrl}");
                     LoadAvatarForClient(avatarUrl);
+                }
+                else
+                {
+                    LogError($"Non-owner: No avatar URL available and no fallback. Player model may not load. NetworkObjectId: {NetworkObject.ObjectId}");
                 }
             }
         }
@@ -155,6 +220,13 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
         public override void OnStopClient()
         {
             base.OnStopClient();
+            
+            // 停止协程
+            if (_checkUrlCoroutine != null)
+            {
+                StopCoroutine(_checkUrlCoroutine);
+                _checkUrlCoroutine = null;
+            }
             
             // 取消订阅事件
             _syncedAvatarUrl.OnChange -= OnAvatarUrlChanged;
@@ -198,8 +270,59 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 return;
             }
             
-            LogWarning($"Avatar load failed (IsOwner: {IsOwner}). Error: {(args != null ? args.Message : "Unknown error")}");
-            OnLoadComplete?.Invoke();
+            string errorMessage = args != null ? args.Message : "Unknown error";
+            LogWarning($"Avatar load failed (IsOwner: {IsOwner}, retry: {_loadRetryCount}/{maxLoadRetries}). Error: {errorMessage}");
+            
+            _isLoading = false;
+            
+            // 如果还没达到最大重试次数，尝试重试
+            if (_loadRetryCount < maxLoadRetries)
+            {
+                _loadRetryCount++;
+                LogDebug($"Retrying avatar load ({_loadRetryCount}/{maxLoadRetries}) after {retryDelay}s...");
+                StartCoroutine(RetryLoadAvatar());
+            }
+            else
+            {
+                LogError($"Avatar load failed after {maxLoadRetries} retries. Giving up.");
+                OnLoadComplete?.Invoke();
+            }
+        }
+        
+        /// <summary>
+        /// 重试加载avatar
+        /// </summary>
+        private System.Collections.IEnumerator RetryLoadAvatar()
+        {
+            yield return new WaitForSeconds(retryDelay);
+            
+            // 检查对象是否仍然有效
+            if (this == null || gameObject == null)
+            {
+                yield break;
+            }
+            
+            // 获取要加载的URL
+            string urlToLoad = null;
+            if (!string.IsNullOrEmpty(_syncedAvatarUrl.Value))
+            {
+                urlToLoad = _syncedAvatarUrl.Value;
+            }
+            else if (!string.IsNullOrEmpty(avatarUrl))
+            {
+                urlToLoad = avatarUrl;
+            }
+            
+            if (!string.IsNullOrEmpty(urlToLoad))
+            {
+                LogDebug($"Retrying to load avatar from: {urlToLoad}");
+                LoadAvatarForClient(urlToLoad);
+            }
+            else
+            {
+                LogError("Cannot retry: No avatar URL available");
+                OnLoadComplete?.Invoke();
+            }
         }
 
         private void OnLoadCompleted(object sender, CompletionEventArgs args)
@@ -216,6 +339,9 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 LogError("OnLoadCompleted received null arguments");
                 return;
             }
+            
+            _isLoading = false;
+            _loadRetryCount = 0; // 重置重试计数
             
             LogDebug($"Avatar loaded successfully (IsOwner: {IsOwner})");
             
@@ -272,6 +398,8 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
             }
             
             // Re-parent and reset transforms
+            // 确保在设置parent之前，avatar的world position不会改变
+            Vector3 worldPos = avatar.transform.position;
             avatar.transform.parent = transform;
             avatar.transform.localPosition = avatarPositionOffset;
             avatar.transform.localRotation = Quaternion.Euler(0, 0, 0);
@@ -280,7 +408,18 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
             // 确保avatar及其所有子对象都是激活的（所有客户端都需要）
             SetActiveRecursively(avatar, true);
             
-            LogDebug($"Avatar setup complete. Avatar: {avatar.name}, Parent: {transform.name}, Active: {avatar.activeSelf}, IsOwner: {IsOwner}");
+            // 确保avatar的Renderer组件是启用的（可能被意外禁用）
+            Renderer[] renderers = avatar.GetComponentsInChildren<Renderer>(true);
+            foreach (Renderer renderer in renderers)
+            {
+                if (renderer != null && !renderer.enabled)
+                {
+                    LogDebug($"Enabling disabled renderer: {renderer.name}");
+                    renderer.enabled = true;
+                }
+            }
+            
+            LogDebug($"Avatar setup complete. Avatar: {avatar.name}, Parent: {transform.name}, Active: {avatar.activeSelf}, IsOwner: {IsOwner}, Player pos: {transform.position}, Avatar localPos: {avatar.transform.localPosition}");
             
             // 设置NetworkPlayerAnimationController（用于多人游戏）
             // 注意：所有客户端都需要设置动画控制器，不只是Owner
@@ -295,118 +434,95 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 LogWarning("NetworkPlayerAnimationController not found on " + gameObject.name);
             }
             
-            // Avatar加载完成后，如果是非Owner，也需要重置位置（确保y值正确）
+            // Avatar加载完成后，确保所有客户端都能看到avatar
+            // 注意：非Owner客户端不应该强制设置位置，位置应该由NetworkTransform同步
+            // 但我们需要确保avatar的transform和可见性正确
             if (!IsOwner)
             {
-                StartCoroutine(ResetPositionAfterAvatarLoad());
+                StartCoroutine(EnsureAvatarVisibleAfterLoad());
             }
         }
         
         /// <summary>
-        /// Avatar加载后重置位置（用于非Owner客户端）
+        /// Avatar加载后确保可见性（用于非Owner客户端）
+        /// 注意：只调整y坐标，x和z由NetworkTransform同步
         /// </summary>
-        private System.Collections.IEnumerator ResetPositionAfterAvatarLoad()
+        private System.Collections.IEnumerator EnsureAvatarVisibleAfterLoad()
         {
             // 等待几帧，确保avatar完全设置好
             yield return new WaitForSeconds(0.1f);
             yield return new WaitForFixedUpdate();
             
-            // 获取PlayerPositionReset组件
-            PlayerPositionReset positionReset = GetComponent<PlayerPositionReset>();
-            if (positionReset != null)
+            // 检查对象是否已被销毁
+            if (this == null || gameObject == null || avatar == null)
             {
-                // 调用重置位置方法（即使不是Owner，也需要调整位置）
-                LogDebug("Non-owner: Resetting position after avatar load");
-                ResetNonOwnerPosition();
+                yield break;
             }
-            else
-            {
-                // 如果没有PlayerPositionReset，直接调整y值
-                LogDebug("Non-owner: No PlayerPositionReset found, adjusting y position directly");
-                AdjustPlayerYPosition();
-            }
-        }
-        
-        /// <summary>
-        /// 重置非Owner玩家的位置
-        /// </summary>
-        private void ResetNonOwnerPosition()
-        {
-            // 获取生成位置
-            Vector3 spawnPosition = GetSpawnPosition();
             
-            // 使用CharacterController的话，需要先禁用再设置位置
+            LogDebug("Non-owner: Ensuring avatar visibility after load");
+            
+            // 确保玩家GameObject是激活的
+            if (!gameObject.activeSelf)
+            {
+                LogWarning("Non-owner: Player GameObject became inactive, reactivating...");
+                gameObject.SetActive(true);
+            }
+            
+            // 确保avatar是激活的
+            if (!avatar.activeSelf)
+            {
+                LogWarning("Non-owner: Avatar became inactive, reactivating...");
+                SetActiveRecursively(avatar, true);
+            }
+            
+            // 确保avatar的transform正确设置
+            if (avatar.transform.parent != transform)
+            {
+                LogWarning("Non-owner: Avatar parent incorrect, fixing...");
+                avatar.transform.parent = transform;
+            }
+            
+            // 确保avatar的localPosition正确
+            Vector3 expectedLocalPos = avatarPositionOffset;
+            if (Vector3.Distance(avatar.transform.localPosition, expectedLocalPos) > 0.01f)
+            {
+                LogDebug($"Non-owner: Avatar localPosition incorrect ({avatar.transform.localPosition}), fixing to {expectedLocalPos}");
+                avatar.transform.localPosition = expectedLocalPos;
+            }
+            
+            // 确保avatar的localRotation正确
+            if (avatar.transform.localRotation != Quaternion.identity)
+            {
+                LogDebug("Non-owner: Avatar localRotation incorrect, fixing...");
+                avatar.transform.localRotation = Quaternion.identity;
+            }
+            
+            // 确保avatar的localScale正确
+            if (avatar.transform.localScale != Vector3.one)
+            {
+                LogDebug("Non-owner: Avatar localScale incorrect, fixing...");
+                avatar.transform.localScale = Vector3.one;
+            }
+            
+            // 将非Owner玩家的y坐标复位到0（avatar加载完成后）
+            Vector3 playerPos = transform.position;
+            Vector3 fixedPos = new Vector3(playerPos.x, 0f, playerPos.z);
+            
             CharacterController controller = GetComponent<CharacterController>();
             if (controller != null)
             {
                 controller.enabled = false;
-                transform.position = spawnPosition;
+                transform.position = fixedPos;
                 controller.enabled = true;
             }
             else
             {
-                transform.position = spawnPosition;
+                transform.position = fixedPos;
             }
             
-            LogDebug($"Non-owner: Position reset to {spawnPosition}");
-        }
-        
-        /// <summary>
-        /// 调整玩家Y位置（确保不在地面以下）
-        /// </summary>
-        private void AdjustPlayerYPosition()
-        {
-            Vector3 currentPos = transform.position;
+            LogDebug($"Non-owner: Reset player y position to 0 after avatar load: {playerPos} -> {fixedPos}");
             
-            // 如果y值太小（可能在地面以下），调整到合理的高度
-            if (currentPos.y < 0.5f)
-            {
-                Vector3 adjustedPos = new Vector3(currentPos.x, 1.0f, currentPos.z);
-                
-                CharacterController controller = GetComponent<CharacterController>();
-                if (controller != null)
-                {
-                    controller.enabled = false;
-                    transform.position = adjustedPos;
-                    controller.enabled = true;
-                }
-                else
-                {
-                    transform.position = adjustedPos;
-                }
-                
-                LogDebug($"Non-owner: Y position adjusted from {currentPos.y} to {adjustedPos.y}");
-            }
-        }
-        
-        /// <summary>
-        /// 获取生成位置（从PlayerPositionReset或PlayerSpawner）
-        /// </summary>
-        private Vector3 GetSpawnPosition()
-        {
-            // 尝试从PlayerPositionReset获取
-            PlayerPositionReset positionReset = GetComponent<PlayerPositionReset>();
-            if (positionReset != null)
-            {
-                // 使用反射或公共方法获取spawn位置
-                // 如果没有公共方法，尝试从PlayerSpawner获取
-            }
-            
-            // 尝试从PlayerSpawner获取spawn points
-            var spawner = FindObjectOfType<FishNet.Component.Spawning.PlayerSpawner>();
-            if (spawner != null && spawner.Spawns != null && spawner.Spawns.Length > 0)
-            {
-                // 使用NetworkObject的OwnerId来选择spawn点
-                int spawnIndex = (int)(NetworkObject.OwnerId % spawner.Spawns.Length);
-                if (spawner.Spawns[spawnIndex] != null)
-                {
-                    return spawner.Spawns[spawnIndex].position;
-                }
-            }
-            
-            // 使用默认位置（保持x和z，只调整y）
-            Vector3 currentPos = transform.position;
-            return new Vector3(currentPos.x, 1.0f, currentPos.z);
+            LogDebug($"Non-owner: Avatar visibility check complete. Player pos: {transform.position}, Avatar active: {avatar.activeSelf}, Avatar localPos: {avatar.transform.localPosition}");
         }
         
         /// <summary>
@@ -494,11 +610,116 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 return;
             }
             
-            LogDebug($"Loading avatar from URL: {url} (IsOwner: {IsOwner})");
+            // 如果正在加载，跳过（避免重复加载）
+            if (_isLoading)
+            {
+                LogDebug("Avatar is already loading, skipping duplicate load request");
+                return;
+            }
+            
+            _isLoading = true;
+            LogDebug($"Loading avatar from URL: {url} (IsOwner: {IsOwner}, retry: {_loadRetryCount})");
+            
+            // 确保玩家GameObject是激活的
+            if (!gameObject.activeSelf)
+            {
+                LogWarning("Player GameObject is inactive before loading avatar, activating...");
+                gameObject.SetActive(true);
+            }
             
             // 移除前后空格并加载
             string trimmedUrl = url.Trim(' ');
             avatarObjectLoader.LoadAvatar(trimmedUrl);
+        }
+        
+        /// <summary>
+        /// 定期检查并确保avatar和玩家GameObject始终激活
+        /// </summary>
+        private System.Collections.IEnumerator PeriodicActivationCheck()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(1f); // 每秒检查一次
+                
+                // 检查对象是否已被销毁
+                if (this == null || gameObject == null)
+                {
+                    yield break;
+                }
+                
+                // 确保玩家GameObject是激活的
+                if (!gameObject.activeSelf)
+                {
+                    LogWarning("Player GameObject became inactive, reactivating...");
+                    gameObject.SetActive(true);
+                }
+                
+                // 如果avatar已加载，确保它是激活的并且transform正确
+                if (avatar != null)
+                {
+                    if (!avatar.activeSelf)
+                    {
+                        LogWarning("Avatar became inactive, reactivating...");
+                        SetActiveRecursively(avatar, true);
+                    }
+                    
+                    // 确保avatar的parent正确
+                    if (avatar.transform.parent != transform)
+                    {
+                        LogWarning("Avatar parent incorrect, fixing...");
+                        avatar.transform.parent = transform;
+                        avatar.transform.localPosition = avatarPositionOffset;
+                        avatar.transform.localRotation = Quaternion.identity;
+                        avatar.transform.localScale = Vector3.one;
+                    }
+                    
+                    // 确保avatar的Renderer组件是启用的
+                    Renderer[] renderers = avatar.GetComponentsInChildren<Renderer>(true);
+                    foreach (Renderer renderer in renderers)
+                    {
+                        if (renderer != null && !renderer.enabled)
+                        {
+                            LogDebug($"Enabling disabled renderer in periodic check: {renderer.name}");
+                            renderer.enabled = true;
+                        }
+                    }
+                }
+                
+                // 对于非Owner客户端，定期检查y坐标（防止掉下去）
+                if (!IsOwner)
+                {
+                    Vector3 playerPos = transform.position;
+                    if (playerPos.y < -0.5f || playerPos.y > 0.5f)
+                    {
+                        // 如果y坐标偏离0太多，复位到0
+                        LogWarning($"Non-owner: Player y position off in periodic check ({playerPos.y}), resetting to 0...");
+                        Vector3 fixedPos = new Vector3(playerPos.x, 0f, playerPos.z);
+                        
+                        CharacterController controller = GetComponent<CharacterController>();
+                        if (controller != null)
+                        {
+                            controller.enabled = false;
+                            transform.position = fixedPos;
+                            controller.enabled = true;
+                        }
+                        else
+                        {
+                            transform.position = fixedPos;
+                        }
+                    }
+                }
+                
+                // 如果avatar还没加载，且不是Owner，检查是否有URL但还没加载
+                if (avatar == null && !IsOwner && !_isLoading)
+                {
+                    string syncedUrl = _syncedAvatarUrl.Value;
+                    if (!string.IsNullOrEmpty(syncedUrl))
+                    {
+                        LogDebug("Non-owner: Found avatar URL but avatar not loaded, attempting to load...");
+                        LoadAvatarForClient(syncedUrl);
+                    }
+                }
+            }
         }
         
         private void LogDebug(string message)
