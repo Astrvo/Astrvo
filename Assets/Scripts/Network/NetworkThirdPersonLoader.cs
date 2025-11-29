@@ -41,6 +41,7 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
         private int _loadRetryCount = 0; // 当前重试次数
         private bool _isLoading = false; // 是否正在加载
         private System.Collections.IEnumerator _checkUrlCoroutine; // URL检查协程
+        private bool _hasResetYPosition = false; // 是否已经复位过y坐标（只复位一次）
         
         public override void OnStartServer()
         {
@@ -59,9 +60,10 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
         {
             base.OnStartClient();
             
-            // 重置重试计数
+            // 重置重试计数和标志
             _loadRetryCount = 0;
             _isLoading = false;
+            _hasResetYPosition = false; // 重置y坐标复位标志
             
             // 所有客户端都需要初始化AvatarObjectLoader（不只是Owner）
             avatarObjectLoader = new AvatarObjectLoader();
@@ -124,6 +126,8 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
         
         /// <summary>
         /// 检查并修复新加入玩家的y坐标（防止掉下去）
+        /// 注意：这个函数只在新玩家加入时调用，如果avatar还没加载，不会复位
+        /// 真正的复位会在avatar加载完成后在EnsureAvatarVisibleAfterLoad中进行
         /// </summary>
         private System.Collections.IEnumerator CheckAndFixYPositionForNewPlayer()
         {
@@ -137,23 +141,23 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 yield break;
             }
             
-            // 将y坐标复位到0
-            Vector3 playerPos = transform.position;
-            Vector3 fixedPos = new Vector3(playerPos.x, 0f, playerPos.z);
-            
-            CharacterController controller = GetComponent<CharacterController>();
-            if (controller != null)
+            // 如果avatar还没加载，不进行复位（等待avatar加载完成后再复位）
+            if (avatar == null)
             {
-                controller.enabled = false;
-                transform.position = fixedPos;
-                controller.enabled = true;
-            }
-            else
-            {
-                transform.position = fixedPos;
+                LogDebug("Non-owner: Avatar not loaded yet, y position reset will happen after avatar loads");
+                yield break;
             }
             
-            LogDebug($"Non-owner: Reset new player y position to 0: {playerPos} -> {fixedPos}");
+            // 如果已经复位过，不再复位
+            if (_hasResetYPosition)
+            {
+                LogDebug("Non-owner: Y position already reset, skipping");
+                yield break;
+            }
+            
+            // 注意：这里不应该复位，因为avatar加载完成后会统一复位
+            // 这个函数只是检查，真正的复位在EnsureAvatarVisibleAfterLoad中
+            LogDebug("Non-owner: Avatar loaded, y position reset will be handled by EnsureAvatarVisibleAfterLoad");
         }
         
         /// <summary>
@@ -405,10 +409,21 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
             avatar.transform.localRotation = Quaternion.Euler(0, 0, 0);
             avatar.transform.localScale = Vector3.one; // 确保缩放正确
             
-            // 确保avatar及其所有子对象都是激活的（所有客户端都需要）
-            SetActiveRecursively(avatar, true);
+            // 对于非Owner客户端，先隐藏avatar，等待y坐标复位后再显示
+            // 复位逻辑在EnsureAvatarVisibleAfterLoad中统一处理
+            if (!IsOwner)
+            {
+                SetActiveRecursively(avatar, false);
+                LogDebug($"Non-owner: Avatar hidden initially (y={transform.position.y}), will show after y position reset");
+            }
+            else
+            {
+                // Owner客户端正常显示
+                SetActiveRecursively(avatar, true);
+            }
             
             // 确保avatar的Renderer组件是启用的（可能被意外禁用）
+            // 注意：即使avatar被隐藏，也要确保renderer是启用的，这样显示时才能正常渲染
             Renderer[] renderers = avatar.GetComponentsInChildren<Renderer>(true);
             foreach (Renderer renderer in renderers)
             {
@@ -434,11 +449,10 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 LogWarning("NetworkPlayerAnimationController not found on " + gameObject.name);
             }
             
-            // Avatar加载完成后，确保所有客户端都能看到avatar
-            // 注意：非Owner客户端不应该强制设置位置，位置应该由NetworkTransform同步
-            // 但我们需要确保avatar的transform和可见性正确
+            // Avatar加载完成后，对于非Owner客户端，启动协程确保y坐标复位并显示avatar和username
             if (!IsOwner)
             {
+                // 确保协程被启动，即使之前可能已经启动过
                 StartCoroutine(EnsureAvatarVisibleAfterLoad());
             }
         }
@@ -504,23 +518,122 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 avatar.transform.localScale = Vector3.one;
             }
             
-            // 将非Owner玩家的y坐标复位到0（avatar加载完成后）
-            Vector3 playerPos = transform.position;
-            Vector3 fixedPos = new Vector3(playerPos.x, 0f, playerPos.z);
+            // 获取nameTag引用（在协程开始时获取，确保能获取到）
+            PlayerNameTag nameTag = GetComponent<PlayerNameTag>();
             
-            CharacterController controller = GetComponent<CharacterController>();
-            if (controller != null)
+            // 只复位一次y坐标（avatar加载完成后）
+            // 无论y坐标是否接近0，都要确保复位到精确的0
+            if (!_hasResetYPosition)
             {
-                controller.enabled = false;
-                transform.position = fixedPos;
-                controller.enabled = true;
+                _hasResetYPosition = true;
+                
+                // 先隐藏avatar和username，等待y坐标复位后再显示
+                if (avatar != null)
+                {
+                    SetActiveRecursively(avatar, false);
+                    LogDebug("Non-owner: Avatar hidden until y position is reset to 0");
+                }
+                
+                // 隐藏username
+                if (nameTag != null)
+                {
+                    nameTag.SetVisible(false);
+                    LogDebug("Non-owner: Username hidden until y position is reset to 0");
+                }
+                
+                // 将非Owner玩家的y坐标复位到0（avatar加载完成后，只复位一次）
+                // 无论当前y坐标是多少，都复位到0
+                Vector3 playerPos = transform.position;
+                Vector3 fixedPos = new Vector3(playerPos.x, 0f, playerPos.z);
+                
+                CharacterController controller = GetComponent<CharacterController>();
+                if (controller != null)
+                {
+                    controller.enabled = false;
+                    transform.position = fixedPos;
+                    controller.enabled = true;
+                }
+                else
+                {
+                    transform.position = fixedPos;
+                }
+                
+                LogDebug($"Non-owner: Reset player y position to 0 after avatar load (ONCE): {playerPos} -> {fixedPos}");
+                
+                // 等待一帧，确保位置已经设置好，然后显示avatar和username
+                yield return new WaitForFixedUpdate();
+                
+                // 再次确认y坐标是0（防止被NetworkTransform覆盖）
+                Vector3 currentPos = transform.position;
+                if (Mathf.Abs(currentPos.y) > 0.01f)
+                {
+                    LogWarning($"Non-owner: Y position was changed after reset ({currentPos.y}), resetting again...");
+                    if (controller != null)
+                    {
+                        controller.enabled = false;
+                        transform.position = new Vector3(currentPos.x, 0f, currentPos.z);
+                        controller.enabled = true;
+                    }
+                    else
+                    {
+                        transform.position = new Vector3(currentPos.x, 0f, currentPos.z);
+                    }
+                    yield return new WaitForFixedUpdate();
+                }
+                
+                // 显示avatar和username
+                if (avatar != null)
+                {
+                    SetActiveRecursively(avatar, true);
+                    LogDebug("Non-owner: Avatar shown after y position reset to 0");
+                }
+                
+                if (nameTag != null)
+                {
+                    nameTag.SetVisible(true);
+                    LogDebug("Non-owner: Username shown after y position reset to 0");
+                }
             }
             else
             {
-                transform.position = fixedPos;
+                // 如果y坐标已经复位过，但avatar刚加载完成，也要显示avatar和username
+                // 同时检查y坐标是否还是0，如果不是，再次复位
+                Vector3 currentPos = transform.position;
+                if (Mathf.Abs(currentPos.y) > 0.01f)
+                {
+                    LogWarning($"Non-owner: Y position is not 0 ({currentPos.y}) even though reset flag is true, resetting again...");
+                    Vector3 fixedPos = new Vector3(currentPos.x, 0f, currentPos.z);
+                    
+                    CharacterController controller = GetComponent<CharacterController>();
+                    if (controller != null)
+                    {
+                        controller.enabled = false;
+                        transform.position = fixedPos;
+                        controller.enabled = true;
+                    }
+                    else
+                    {
+                        transform.position = fixedPos;
+                    }
+                    yield return new WaitForFixedUpdate();
+                }
+                
+                LogDebug("Non-owner: Y position already reset, but ensuring avatar and username are visible after avatar load");
+                
+                // 确保avatar显示
+                if (avatar != null)
+                {
+                    SetActiveRecursively(avatar, true);
+                    LogDebug("Non-owner: Avatar shown (y position was already reset)");
+                }
+                
+                // 确保username显示
+                if (nameTag != null)
+                {
+                    nameTag.SetVisible(true);
+                    LogDebug("Non-owner: Username shown (y position was already reset)");
+                }
             }
-            
-            LogDebug($"Non-owner: Reset player y position to 0 after avatar load: {playerPos} -> {fixedPos}");
             
             LogDebug($"Non-owner: Avatar visibility check complete. Player pos: {transform.position}, Avatar active: {avatar.activeSelf}, Avatar localPos: {avatar.transform.localPosition}");
         }
@@ -657,7 +770,29 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                 // 如果avatar已加载，确保它是激活的并且transform正确
                 if (avatar != null)
                 {
-                    if (!avatar.activeSelf)
+                    // 对于非Owner客户端，检查y坐标是否已经复位
+                    // 如果已经复位，确保avatar和username都显示
+                    if (!IsOwner && _hasResetYPosition)
+                    {
+                        Vector3 playerPos = transform.position;
+                        if (Mathf.Abs(playerPos.y) < 0.5f)
+                        {
+                            // y坐标已经复位，确保avatar和username都显示
+                            if (!avatar.activeSelf)
+                            {
+                                SetActiveRecursively(avatar, true);
+                                LogDebug("Non-owner: Avatar reactivated in periodic check (y position reset)");
+                            }
+                            
+                            // 确保username也显示
+                            PlayerNameTag nameTag = GetComponent<PlayerNameTag>();
+                            if (nameTag != null)
+                            {
+                                nameTag.SetVisible(true);
+                            }
+                        }
+                    }
+                    else if (!avatar.activeSelf)
                     {
                         LogWarning("Avatar became inactive, reactivating...");
                         SetActiveRecursively(avatar, true);
@@ -685,29 +820,6 @@ public class NetworkThirdPersonLoader : NetworkBehaviour
                     }
                 }
                 
-                // 对于非Owner客户端，定期检查y坐标（防止掉下去）
-                if (!IsOwner)
-                {
-                    Vector3 playerPos = transform.position;
-                    if (playerPos.y < -0.5f || playerPos.y > 0.5f)
-                    {
-                        // 如果y坐标偏离0太多，复位到0
-                        LogWarning($"Non-owner: Player y position off in periodic check ({playerPos.y}), resetting to 0...");
-                        Vector3 fixedPos = new Vector3(playerPos.x, 0f, playerPos.z);
-                        
-                        CharacterController controller = GetComponent<CharacterController>();
-                        if (controller != null)
-                        {
-                            controller.enabled = false;
-                            transform.position = fixedPos;
-                            controller.enabled = true;
-                        }
-                        else
-                        {
-                            transform.position = fixedPos;
-                        }
-                    }
-                }
                 
                 // 如果avatar还没加载，且不是Owner，检查是否有URL但还没加载
                 if (avatar == null && !IsOwner && !_isLoading)

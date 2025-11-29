@@ -36,6 +36,9 @@ public class PlayerNameTag : NetworkBehaviour
     private float _cameraCheckInterval = 0.5f; // 每0.5秒检查一次相机
     private float _lastCameraCheckTime = 0f;
     
+    // 可见性控制
+    private bool _isVisible = true; // 是否可见
+    
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -50,7 +53,34 @@ public class PlayerNameTag : NetworkBehaviour
         // 初始化名称标签（所有客户端都需要）
         InitializeNameTag();
         
-        // 显示临时文本，等待用户名同步
+        // 对于非Owner客户端，检查avatar是否已经加载完成
+        // 如果avatar已经加载完成且y坐标已经复位，就直接显示username
+        if (!IsOwner)
+        {
+            // 检查NetworkThirdPersonLoader，看avatar是否已经加载完成
+            NetworkThirdPersonLoader loader = GetComponent<NetworkThirdPersonLoader>();
+            if (loader != null)
+            {
+                // 延迟检查，确保NetworkThirdPersonLoader已经初始化
+                StartCoroutine(CheckAvatarAndShowUsername(loader));
+            }
+            else
+            {
+                // 如果没有loader，先隐藏，等待loader初始化
+                _isVisible = false;
+                if (nameCanvas != null)
+                {
+                    nameCanvas.gameObject.SetActive(false);
+                }
+                else if (nameText != null)
+                {
+                    nameText.gameObject.SetActive(false);
+                }
+                LogDebug("Non-owner: NetworkThirdPersonLoader not found, username hidden initially");
+            }
+        }
+        
+        // 显示临时文本，等待用户名同步（但如果是非Owner且已隐藏，则不会显示）
         UpdateNameDisplay("Loading...");
         
         // 订阅用户名更新事件（仅Owner需要监听PlayFab UsernameManager）
@@ -82,6 +112,59 @@ public class PlayerNameTag : NetworkBehaviour
         yield return new WaitForSeconds(0.1f);
         
         SetPlayerName();
+    }
+    
+    /// <summary>
+    /// 检查avatar是否已加载完成，如果已加载则显示username
+    /// </summary>
+    private IEnumerator CheckAvatarAndShowUsername(NetworkThirdPersonLoader loader)
+    {
+        // 等待一小段时间，确保loader已经初始化
+        yield return new WaitForSeconds(0.1f);
+        
+        // 检查玩家的y坐标，如果接近0，说明avatar已经加载完成并复位了
+        float checkInterval = 0.1f;
+        float timeout = 3f;
+        float elapsed = 0f;
+        
+        while (elapsed < timeout)
+        {
+            // 检查玩家位置，如果y坐标接近0，说明可能已经复位了
+            Vector3 playerPos = transform.position;
+            
+            // 如果y坐标接近0（在-0.5到0.5之间），说明avatar已经加载完成并复位了
+            // 此时应该显示username（无论是否有用户名，因为用户名可能稍后同步）
+            if (Mathf.Abs(playerPos.y) < 0.5f)
+            {
+                _isVisible = true;
+                if (nameCanvas != null)
+                {
+                    nameCanvas.gameObject.SetActive(true);
+                }
+                else if (nameText != null)
+                {
+                    nameText.gameObject.SetActive(true);
+                }
+                LogDebug($"Non-owner: Avatar already loaded and y position reset (y={playerPos.y}), showing username");
+                yield break;
+            }
+            
+            yield return new WaitForSeconds(checkInterval);
+            elapsed += checkInterval;
+        }
+        
+        // 如果超时还没显示，说明avatar可能还在加载，保持隐藏状态
+        // 等待NetworkThirdPersonLoader在avatar加载完成后调用SetVisible(true)
+        _isVisible = false;
+        if (nameCanvas != null)
+        {
+            nameCanvas.gameObject.SetActive(false);
+        }
+        else if (nameText != null)
+        {
+            nameText.gameObject.SetActive(false);
+        }
+        LogDebug("Non-owner: Avatar check timeout, username will be shown after avatar loads");
     }
     
     /// <summary>
@@ -261,10 +344,10 @@ public class PlayerNameTag : NetworkBehaviour
             }
         }
         
-        // 确保Canvas是激活的
-        if (nameCanvas != null && !nameCanvas.gameObject.activeSelf)
+        // 根据可见性设置Canvas激活状态
+        if (nameCanvas != null && nameCanvas.gameObject.activeSelf != _isVisible)
         {
-            nameCanvas.gameObject.SetActive(true);
+            nameCanvas.gameObject.SetActive(_isVisible);
         }
         
         // 获取主相机
@@ -353,8 +436,24 @@ public class PlayerNameTag : NetworkBehaviour
         }
         
         _currentUsername = username;
+        
+        // 对于非Owner客户端，检查avatar是否已经加载完成
+        // 如果avatar已经加载完成（y坐标已经复位），就显示username
+        if (!IsOwner)
+        {
+            Vector3 playerPos = transform.position;
+            // 如果y坐标接近0，说明avatar已经加载完成并复位了
+            if (Mathf.Abs(playerPos.y) < 0.5f)
+            {
+                _isVisible = true;
+                LogDebug($"Non-owner: Avatar already loaded (y={playerPos.y}), showing username: {username}");
+            }
+            // 注意：如果y坐标还没复位，保持当前的_isVisible状态
+            // 不要强制设置为false，因为可能已经在CheckAvatarAndShowUsername中设置为true了
+        }
+        
         UpdateNameDisplay(username);
-        LogDebug($"Username updated from server: {username} (IsOwner: {IsOwner})");
+        LogDebug($"Username updated from server: {username} (IsOwner: {IsOwner}, Visible: {_isVisible})");
     }
     
     /// <summary>
@@ -509,6 +608,25 @@ public class PlayerNameTag : NetworkBehaviour
     }
     
     /// <summary>
+    /// 设置名称标签的可见性
+    /// </summary>
+    public void SetVisible(bool visible)
+    {
+        _isVisible = visible;
+        
+        if (nameCanvas != null)
+        {
+            nameCanvas.gameObject.SetActive(visible);
+        }
+        else if (nameText != null)
+        {
+            nameText.gameObject.SetActive(visible);
+        }
+        
+        LogDebug($"Name tag visibility set to: {visible} (IsOwner: {IsOwner})");
+    }
+    
+    /// <summary>
     /// 更新名称显示
     /// </summary>
     private void UpdateNameDisplay(string name)
@@ -517,17 +635,18 @@ public class PlayerNameTag : NetworkBehaviour
         {
             nameText.text = name;
             
-            // 确保Text和Canvas都是激活的
-            if (!nameText.gameObject.activeSelf)
+            // 根据可见性设置激活状态
+            bool shouldBeActive = _isVisible;
+            if (nameText.gameObject.activeSelf != shouldBeActive)
             {
-                nameText.gameObject.SetActive(true);
+                nameText.gameObject.SetActive(shouldBeActive);
             }
-            if (nameCanvas != null && !nameCanvas.gameObject.activeSelf)
+            if (nameCanvas != null && nameCanvas.gameObject.activeSelf != shouldBeActive)
             {
-                nameCanvas.gameObject.SetActive(true);
+                nameCanvas.gameObject.SetActive(shouldBeActive);
             }
             
-            LogDebug($"Name display updated: '{name}' (IsOwner: {IsOwner})");
+            LogDebug($"Name display updated: '{name}' (IsOwner: {IsOwner}, Visible: {_isVisible})");
         }
         else
         {
@@ -537,6 +656,15 @@ public class PlayerNameTag : NetworkBehaviour
             if (nameText != null)
             {
                 nameText.text = name;
+                // 设置可见性
+                if (nameCanvas != null)
+                {
+                    nameCanvas.gameObject.SetActive(_isVisible);
+                }
+                else if (nameText != null)
+                {
+                    nameText.gameObject.SetActive(_isVisible);
+                }
             }
         }
     }
