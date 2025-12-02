@@ -1,13 +1,11 @@
 # Links
 
-Official Website:
+Official Website: [https://www.astrvo.com/](https://www.astrvo.com/)
 
-Twitter:
+Twitter: [https://x.com/AstrvoSpace](https://x.com/AstrvoSpace)
+
+YouTube: [https://www.youtube.com/@astrvospace](https://www.youtube.com/@astrvospace)
 
 Discord:
 
 Telegram:
-
-Youtube:
-
-Last updated 7 days ago

@@ -11,7 +11,3 @@ In the Web3 world, community interaction is still largely limited to text and ch
 Astrvo is designed to build a 3D virtual platform natively tied to the Cardano blockchain, enabling communities, brands, and projects to establish a “spatial” presence in a decentralized environment.
 
 During the MVP stage, the first real-world deployment is the Snek Taiwan offline meetup, where Astrvo provides an interactive experience that combines **on-chain identity + virtual venue + project showcases**.
-
-<a href="../" class="button secondary">Previous: Introduction to Astrvo</a> <a href="key-features.md" class="button primary">Next: Key Features</a>
-
-Last updated 7 days ago

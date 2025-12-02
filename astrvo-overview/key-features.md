@@ -41,5 +41,3 @@
 * **PlayFab** as the Database to analyse user preferences.
 {% endstep %}
 {% endstepper %}
-
-_Last updated 7 days ago_

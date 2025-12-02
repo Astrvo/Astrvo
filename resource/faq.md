@@ -48,6 +48,5 @@ No. SovX’s strength lies in its **on-chain integration** and **auto-generated 
 
 </details>
 
-[PreviousAudits & Security](resource/audits-and-security.md)
 
-Last updated 7 days ago
+
