@@ -24,7 +24,7 @@
 
 ## RESOURCE
 
-* [Official Links](resource/official-links.md)
+* [Official Links](resource/links.md)
 * [FAQ](resource/faq.md)
 * [Team](resource/team.md)
 * [Astrvo Academy](resource/astrvo-academy.md)
