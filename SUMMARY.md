@@ -1,21 +1,35 @@
 # Table of contents
 
-* [ASTRVO OVERVIEW](README.md)
-  * [What is Astrvo?](astrvo-overview/what-is-astrvo.md)
-  * [Technology Structure](astrvo-overview/technology-structure.md)
-  * [Key Features](astrvo-overview/key-features.md)
-* [app-guide](app-guide/README.md)
-  * [Creating Content](app-guide/creating-content.md)
-  * [Getting Started](app-guide/getting-started.md)
-  * [On-chain Governance](app-guide/on-chain-governance.md)
-* [developer](developer/README.md)
-  * [API Reference](developer/api-reference.md)
-* [Roadmap](roadmap.md)
-* [Introduction to Astrvo](introduction-to-astrvo.md)
-* [RESOURCE](resource/README.md)
-  * [Links](resource/links.md)
-  * [Team](resource/team.md)
-  * [FAQ](resource/faq.md)
-  * [Astrvo Academy](resource/astrvo-academy.md)
-  * [Audits & Security](resource/audits-and-security.md)
-* [Catalyst Voting](catalyst-voting.md)
+## WELCOME
+
+* [Introduction to Astrvo](README.md)
+
+## ASTRVO OVERVIEW
+
+* [What is Astrvo?](astrvo-overview/what-is-astrvo.md)
+* [Technology Structure](astrvo-overview/technology-structure.md)
+* [Key Features](astrvo-overview/key-features.md)
+
+## PLATFORM GUIDE
+
+* [Get Start](platform-guide/get-start.md)
+
+## DEVELOPER
+
+* [Unity SDK](developer/unity-sdk.md)
+
+## ROADMAP
+
+* [Roadmap](roadmap/roadmap.md)
+
+## RESOURCE
+
+* [Links](resource/links.md)
+* [FAQ](resource/faq.md)
+* [Team](resource/team.md)
+* [Astrvo Academy](resource/astrvo-academy.md)
+* [Audits & Security](resource/audits-and-security.md)
+
+## CATALYST VOTING
+
+* [Fund 15](catalyst-voting/fund-15.md)

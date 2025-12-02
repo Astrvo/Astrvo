@@ -1,5 +1,7 @@
 ---
 description: Online Portal Built on Cardano
+cover: ../.gitbook/assets/图片1.png
+coverY: 0
 ---
 
 # What is Astrvo?
