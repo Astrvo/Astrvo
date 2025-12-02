@@ -1,5 +1,7 @@
 ---
 description: Astrvo Engine is an open-source, modular 3D DApp creation toolkit
+cover: ../.gitbook/assets/childspace00007_image.png
+coverY: 0
 ---
 
 # Astrvo Engine Unity SDK

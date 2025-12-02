@@ -1,3 +1,8 @@
+---
+cover: ../.gitbook/assets/childspace00005_image (2).png
+coverY: 0
+---
+
 # Official Links
 
 Official Website: [https://www.astrvo.com/](https://www.astrvo.com/)

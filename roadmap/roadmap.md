@@ -1,3 +1,8 @@
+---
+cover: ../.gitbook/assets/childspace00003_image (2).png
+coverY: 0
+---
+
 # Roadmap
 
 #### Milestone 1: Core Tech Stack & Wallet Integration&#x20;
