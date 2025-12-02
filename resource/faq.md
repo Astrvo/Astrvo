@@ -2,51 +2,84 @@
 
 <details>
 
-<summary><strong>Why create a new platform instead of improving Discord?</strong></summary>
+<summary>Why does the Cardano ecosystem need Astrvo?</summary>
 
-While Discord is great for real-time chatting, it lacks **on-chain functionality, governance-specific tools, and structured discussion design**. These missing elements make it unsuitable for **long-term, transparent governance** within the Cardano ecosystem. SovX is purpose-built to bridge that gap.
-
-</details>
-
-<details>
-
-<summary><strong>How can smaller DReps or SPOs make their voices heard?</strong></summary>
-
-SovX introduces a **Spotlight mechanism** that periodically and randomly highlights DReps and SPOs, inviting them to share their views. This ensures **fair visibility** across the ecosystem — not just for the most influential representatives.
+Most Cardano interactions currently occur through 2D platforms like Discord or Twitter. Astrvo creates an immersive environment that enhances engagement, community bonding, and visibility for Cardano brands, NFTs, and projects.
 
 </details>
 
 <details>
 
-<summary><strong>Does every comment or post have to be recorded on-chain?</strong></summary>
+<summary>How do users access Astrvo?</summary>
 
-No. Users can freely choose whether to **publish content on-chain or off-chain**, lowering the barrier to participation. On-chain content is marked with a special indicator and given **priority visibility** to emphasize transparency and accountability.
-
-</details>
-
-<details>
-
-<summary><strong>If voting results are already public, why do we still need this platform?</strong></summary>
-
-Voting data shows **how many people supported or opposed** a proposal — but not **why**. SovX provides **dedicated discussion spaces for each proposal**, allowing the community and proposers to capture reasoning, identify points of contention, and build genuine consensus.
+**No installation required.**\
+Users simply open a web browser, log in as a guest or with a CIP-30 compatible wallet (such as Nami or Eternl), and enter the 3D space using a personalized avatar.
 
 </details>
 
 <details>
 
-<summary><strong>What is the purpose of personal posts or articles?</strong></summary>
+<summary>Which wallets are supported?</summary>
 
-Personal posts allow **DReps, SPOs, ADA holders, and researchers** to publicly express their perspectives or analyses, forming a **transparent governance record**. This enhances accountability and helps ADA holders make **better-informed delegation decisions**.
+CIP-30 standard wallets, including:
+
+* Nami
+* Eternl\
+  (Additional wallets will be supported in future updates.)
 
 </details>
 
 <details>
 
-<summary><strong>Will this platform just become another fragmented forum?</strong></summary>
+<summary><strong>What</strong> can users do inside Astrvo?</summary>
 
-No. SovX’s strength lies in its **on-chain integration** and **auto-generated discussion spaces** for every proposal, ensuring governance conversations remain organized and accessible. The platform is not meant to replace existing communities — it aims to become the **default arena for Cardano governance dialogue**.
+* Join virtual events, AMAs, workshops, and launches
+* Explore branded event halls and showcases
+* Chat and interact with other users in real time
+* Display NFTs and digital assets from their wallet
+* Represent their identity through customizable avatars
 
 </details>
 
+<details>
 
+<summary>How many users can join at once?</summary>
 
+The platform is optimized for **20 concurrent users** with a target latency of **< 200ms**.\
+Scalability improvements are planned for the next roadmap.
+
+</details>
+
+<details>
+
+<summary>What is the long-term vision for Astrvo?</summary>
+
+To become the **permanent online home base** for Cardano communities, including:
+
+* Mobile and VR support
+* Voice chat and advanced interaction tools
+* NFT ticketing and virtual merch
+* Space marketplace for creators
+* Integration with Cardano DeFi, SocialFi, and GameFi
+
+</details>
+
+<details>
+
+<summary>Is Astrvo decentralized?</summary>
+
+Astrvo uses decentralized infrastructure for key blockchain-linked assets:
+
+* Wallet identity and user assets stay on-chain
+* 3D asset storage planned via decentralized solutions such as Iagon\
+  As the platform evolves, on-chain features will expand for deeper decentralization.
+
+</details>
+
+<details>
+
+<summary>Can other Cardano projects use Astrvo for their events?</summary>
+
+Yes. Astrvo provides customizable virtual spaces and will launch a developer toolkit that enables any project, DAO, or community to create branded 3D experiences.
+
+</details>
