@@ -21,6 +21,10 @@ namespace Astrvo.Space
         private PlayerInput playerInput;
         
         private float fallTimeoutDelta;
+        private Vector3 lastPosition;
+        private float calculatedMoveSpeed;
+        private float moveSpeedSmoothVelocity;
+        private const float animationSmoothTime = 0.1f;
         
         [SerializeField][Tooltip("Useful to toggle input detection in editor")]
         private bool inputEnabled = true;
@@ -32,6 +36,7 @@ namespace Astrvo.Space
             playerInput = GetComponent<PlayerInput>();
             playerInput.OnJumpPress += OnJump;
             isInitialized = true;
+            lastPosition = transform.position;
         }
 
         public void Setup(GameObject target, RuntimeAnimatorController runtimeAnimatorController)
@@ -98,8 +103,28 @@ namespace Astrvo.Space
 
         private void UpdateAnimator()
         {
+            // Calculate speed from position change (more robust than input-based)
+            var currentPosition = transform.position;
+            var horizontalDelta = currentPosition - lastPosition;
+            horizontalDelta.y = 0f;
+            
+            var deltaTime = Time.deltaTime;
+            if (deltaTime > 0)
+            {
+                var speed = horizontalDelta.magnitude / deltaTime;
+                calculatedMoveSpeed = Mathf.SmoothDamp(calculatedMoveSpeed, speed, ref moveSpeedSmoothVelocity, animationSmoothTime);
+            }
+            
+            // Debug Log to diagnose animation issue
+            if (horizontalDelta.magnitude > 0.001f)
+            {
+                Debug.Log($"[ThirdPersonController] Moving! Delta: {horizontalDelta.magnitude:F4}, Speed: {calculatedMoveSpeed:F2}, IsGrounded: {thirdPersonMovement.IsGrounded()}");
+            }
+
+            lastPosition = currentPosition;
+
             var isGrounded = thirdPersonMovement.IsGrounded();
-            animator.SetFloat(MoveSpeedHash, thirdPersonMovement.CurrentMoveSpeed);
+            animator.SetFloat(MoveSpeedHash, calculatedMoveSpeed);
             animator.SetBool(IsGroundedHash, isGrounded);
             if (isGrounded)
             {

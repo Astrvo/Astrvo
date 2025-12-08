@@ -679,6 +679,10 @@ MonoBehaviour:
   loadOnStart: 1
   previewAvatar: {fileID: 0}
   enableDebugLogs: 1
+  maxWaitTimeForUrl: 10
+  urlCheckInterval: 0.2
+  maxLoadRetries: 3
+  retryDelay: 2
 --- !u!114 &-3878073652850662119
 MonoBehaviour:
   m_ObjectHideFlags: 0

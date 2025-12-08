@@ -107,6 +107,13 @@ namespace Astrvo.Space
             {
                 return false;
             }
+            
+            // Fix: Check controller.isGrounded first (more reliable)
+            if (controller.isGrounded)
+            {
+                return true;
+            }
+            
             return groundCheck.IsGrounded();
         }
     }

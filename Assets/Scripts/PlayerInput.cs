@@ -78,6 +78,39 @@ namespace Astrvo.Space
         }
 #endif
 
+// ... (previous code)
+
+#if ENABLE_INPUT_SYSTEM
+        // Support for "Send Messages" behavior (like Network/PlayerMovement.cs)
+        public void OnMove(InputValue value)
+        {
+            var moveInput = value.Get<Vector2>();
+            Debug.Log($"[PlayerInput] OnMove called! Input: {moveInput}");
+            AxisHorizontal = moveInput.x;
+            AxisVertical = moveInput.y;
+        }
+
+        public void OnLook(InputValue value)
+        {
+            var lookInput = value.Get<Vector2>();
+            MouseAxisX = lookInput.x * mouseSensitivityX;
+            MouseAxisY = lookInput.y * mouseSensitivityY;
+        }
+
+        public void OnJump(InputValue value)
+        {
+            if (value.isPressed)
+            {
+                OnJumpPress?.Invoke();
+            }
+        }
+
+        public void OnSprint(InputValue value)
+        {
+            IsHoldingLeftShift = value.isPressed;
+        }
+#endif
+
         public void CheckInput()
         {
             bool inputFound = false;
@@ -86,27 +119,20 @@ namespace Astrvo.Space
             if (_playerInputComponent != null)
             {
                 inputFound = true;
-                // New Input System
+                // If using polling (Actions)
                 if (_moveAction != null)
                 {
                     var moveInput = _moveAction.ReadValue<Vector2>();
                     AxisHorizontal = moveInput.x;
                     AxisVertical = moveInput.y;
                 }
-
-                if (_lookAction != null)
-                {
-                    var lookInput = _lookAction.ReadValue<Vector2>();
-                    MouseAxisX = lookInput.x * mouseSensitivityX;
-                    MouseAxisY = lookInput.y * mouseSensitivityY;
-                }
-
-                if (_sprintAction != null)
-                {
-                    IsHoldingLeftShift = _sprintAction.IsPressed();
-                }
+                
+                // Note: If "Send Messages" is used, the OnMove etc methods above 
+                // will have already populated value, so we don't strictly need to do anything here
+                // if the actions are null. But we keep this for hybrid support.
             }
 #endif
+// ... (rest of method)
 
             if (!inputFound)
             {
