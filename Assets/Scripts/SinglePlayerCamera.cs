@@ -86,13 +86,14 @@ public class SinglePlayerCamera : MonoBehaviour
         if (target != null)
         {
             _yaw = transform.eulerAngles.y;
-            _pitch = transform.eulerAngles.x;
+            _pitch = 0f; // Force level view on start
             _rotation = new Vector3(_pitch, _yaw, 0f);
         }
         else
         {
             _yaw = transform.eulerAngles.y;
-            _rotation = transform.eulerAngles;
+            _pitch = 0f; // Force level view on start
+            _rotation = new Vector3(_pitch, _yaw, 0f);
         }
 
         _currentDistance = Mathf.Abs(cameraDistance);
